@@ -10,15 +10,26 @@ Invoice Processing
 Memastikan data base bisa dicoret-coret dan diduplikasi secara safety tanpa bergantung pada Cloud.
 Restore menyalin database lama jadi Safeguard AutoBackup terlebih dahulu sebelum override.
 Prerequisites & Compilation Instructions
-Aplikasi ini dibangun menggunakan framework JetBrains Compose for Desktop (Kotlin). Pada environment ini, dideteksi bahwa mesin belum menginstall Java Runtime Environment (JRE/JDK).
+Aplikasi ini dibangun menggunakan JetBrains Compose for Desktop (Kotlin) dengan JDK 17.
 
-Untuk menjalankan aplikasi ini secara Native di Windows Desktop layaknya aplikasi standar:
+Untuk menjalankan aplikasi di Windows:
 
-Install Java JDK 17+ (Rekomendasi) Download dan pasang Adoptium Temurin (JDK 17) atau Oracle JDK dari situs resminya.
-Build the Application Buka terminal di folder project (BizManager), lalu jalankan:
-bash
-./gradlew run
-Membangun Installer (.exe/.msi) Sekalinya UI/Logic sudah dites dengan run, jalankan perintah berikut untuk menghasilkan distribusi Native Windows Setup:
-bash
-./gradlew packageDistributionForCurrentOS
-(File eksekusi akan berada di /build/compose/binaries/main/app)
+1) Build/test via Docker (opsional, aman dari konflik JDK host):
+PowerShell
+.\run.ps1 all
+
+2) Jalankan UI lokal di Windows host:
+PowerShell
+.\run.ps1 run-local
+
+3) Build installer Windows native (.exe/.msi):
+PowerShell
+.\run.ps1 win-installer
+
+Output installer:
+- build\compose\binaries\main-release\exe\
+- build\compose\binaries\main-release\msi\
+
+Catatan:
+- Output .exe/.msi tidak dihasilkan dari container Linux.
+- Installer Windows harus dipackage dari environment Windows host.

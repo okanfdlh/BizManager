@@ -11,11 +11,12 @@ function Show-Usage {
   Write-Host "Usage: .\run.ps1 [command]"
   Write-Host ""
   Write-Host "Commands:"
-  Write-Host "  all       Run full pipeline: up -> jdk -> test -> package (default)"
+  Write-Host "  all       Run full pipeline in Docker JDK 17 (output stays on host) (default)"
   Write-Host "  up        Build image and start container in background"
   Write-Host "  jdk       Show Java version used inside container"
   Write-Host "  test      Run gradle test in container (JDK 17)"
   Write-Host "  package   Run gradle clean build in container"
+  Write-Host "  win-installer Build Windows installer (.exe/.msi) on host"
   Write-Host "  run       Show how to run Compose Desktop app (UI) correctly"
   Write-Host "  run-local Run gradlew run on host (requires host JDK 17)"
   Write-Host "  shell     Open interactive shell in running container"
@@ -37,6 +38,8 @@ switch ($Command) {
     Exec-InContainer 'echo "JAVA_HOME=$JAVA_HOME" && java -version'
     Exec-InContainer 'bash ./gradlew test'
     Exec-InContainer 'bash ./gradlew clean build'
+    Write-Host "Docker build selesai. Output ada di folder host: build\"
+    Write-Host "Untuk installer Windows (.exe/.msi), jalankan: .\run.ps1 win-installer"
   }
   "up" {
     Ensure-Up
@@ -56,6 +59,14 @@ switch ($Command) {
   "run" {
     Write-Host "Compose Desktop app butuh GUI/OpenGL, jadi tidak cocok dijalankan interaktif di container headless."
     Write-Host "Gunakan .\run.ps1 all untuk build/test Docker, lalu .\run.ps1 run-local untuk jalankan UI di host."
+    Write-Host "Untuk output installer Windows, jalankan: .\run.ps1 win-installer"
+  }
+  "win-installer" {
+    Write-Host "Installer Windows dijalankan di host (butuh JDK 17 di host)."
+    .\gradlew.bat packageReleaseExe packageReleaseMsi
+    Write-Host "Output:"
+    Write-Host "  build\compose\binaries\main-release\exe\"
+    Write-Host "  build\compose\binaries\main-release\msi\"
   }
   "run-local" {
     .\gradlew.bat run

@@ -49,7 +49,12 @@ compose.desktop {
         mainClass = "com.bizmanager.MainKt"
 
         nativeDistributions {
-            targetFormats(org.jetbrains.compose.desktop.application.dsl.TargetFormat.Dmg, org.jetbrains.compose.desktop.application.dsl.TargetFormat.Msi, org.jetbrains.compose.desktop.application.dsl.TargetFormat.Deb)
+            targetFormats(
+                org.jetbrains.compose.desktop.application.dsl.TargetFormat.Dmg,
+                org.jetbrains.compose.desktop.application.dsl.TargetFormat.Msi,
+                org.jetbrains.compose.desktop.application.dsl.TargetFormat.Exe,
+                org.jetbrains.compose.desktop.application.dsl.TargetFormat.Deb
+            )
             packageName = "BizManager"
             packageVersion = "1.0.0"
             macOS {

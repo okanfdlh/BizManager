@@ -57,6 +57,7 @@ compose.desktop {
             )
             packageName = "BizManager"
             packageVersion = "1.0.0"
+            modules("java.sql")
             windows {
                 console = true
             }

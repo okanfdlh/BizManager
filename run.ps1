@@ -32,6 +32,23 @@ function Exec-InContainer([string]$Cmd) {
   docker compose -f $ComposeFile exec -T $Service bash -lc "sed -i 's/\r`$//' ./gradlew && chmod +x ./gradlew && $Cmd"
 }
 
+function Ensure-HostJdk17 {
+  $versionOut = & .\gradlew.bat -version 2>&1
+  if ($LASTEXITCODE -ne 0) {
+    throw "Gagal cek versi Gradle/JDK host. Pastikan JDK 17 terpasang dan JAVA_HOME benar."
+  }
+
+  $joined = ($versionOut | Out-String)
+  if ($joined -notmatch "JVM:\s+17(\.| )") {
+    Write-Host "JDK host terdeteksi bukan 17."
+    Write-Host "Silakan set JDK 17 lalu jalankan ulang."
+    Write-Host "Contoh sementara (PowerShell):"
+    Write-Host '$env:JAVA_HOME="C:\Program Files\Java\jdk-17"'
+    Write-Host '$env:Path="$env:JAVA_HOME\bin;$env:Path"'
+    throw "Host JDK harus versi 17 untuk run-local/win-installer."
+  }
+}
+
 switch ($Command) {
   "all" {
     Ensure-Up
@@ -62,6 +79,7 @@ switch ($Command) {
     Write-Host "Untuk output installer Windows, jalankan: .\run.ps1 win-installer"
   }
   "win-installer" {
+    Ensure-HostJdk17
     Write-Host "Installer Windows dijalankan di host (butuh JDK 17 di host)."
     .\gradlew.bat packageExe packageMsi
     Write-Host "Output:"
@@ -69,6 +87,7 @@ switch ($Command) {
     Write-Host "  build\compose\binaries\main\msi\"
   }
   "run-local" {
+    Ensure-HostJdk17
     .\gradlew.bat run
   }
   "shell" {

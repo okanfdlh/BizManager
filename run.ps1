@@ -63,10 +63,10 @@ switch ($Command) {
   }
   "win-installer" {
     Write-Host "Installer Windows dijalankan di host (butuh JDK 17 di host)."
-    .\gradlew.bat packageReleaseExe packageReleaseMsi
+    .\gradlew.bat packageExe packageMsi
     Write-Host "Output:"
-    Write-Host "  build\compose\binaries\main-release\exe\"
-    Write-Host "  build\compose\binaries\main-release\msi\"
+    Write-Host "  build\compose\binaries\main\exe\"
+    Write-Host "  build\compose\binaries\main\msi\"
   }
   "run-local" {
     .\gradlew.bat run

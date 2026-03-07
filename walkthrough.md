@@ -27,8 +27,8 @@ PowerShell
 .\run.ps1 win-installer
 
 Output installer:
-- build\compose\binaries\main-release\exe\
-- build\compose\binaries\main-release\msi\
+- build\compose\binaries\main\exe\
+- build\compose\binaries\main\msi\
 
 Catatan:
 - Output .exe/.msi tidak dihasilkan dari container Linux.
@@ -62,8 +62,8 @@ PowerShell
 .\run.ps1 win-installer
 
 Hasil installer ada di:
-- `build\compose\binaries\main-release\exe\`
-- `build\compose\binaries\main-release\msi\`
+- `build\compose\binaries\main\exe\`
+- `build\compose\binaries\main\msi\`
 
 5) Jika ingin membersihkan environment Docker:
 PowerShell

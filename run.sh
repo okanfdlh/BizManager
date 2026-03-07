@@ -53,7 +53,7 @@ ensure_up() {
 exec_in_container() {
   local cmd="$1"
   LAST_STEP="container exec: $cmd"
-  docker compose -f "$COMPOSE_FILE" exec -T "$SERVICE" bash -lc "$cmd"
+  docker compose -f "$COMPOSE_FILE" exec -T "$SERVICE" bash -lc "sed -i 's/\r$//' ./gradlew && chmod +x ./gradlew && $cmd"
 }
 
 cmd="${1:-all}"

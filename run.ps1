@@ -28,7 +28,7 @@ function Ensure-Up {
 }
 
 function Exec-InContainer([string]$Cmd) {
-  docker compose -f $ComposeFile exec -T $Service bash -lc $Cmd
+  docker compose -f $ComposeFile exec -T $Service bash -lc "sed -i 's/\r`$//' ./gradlew && chmod +x ./gradlew && $Cmd"
 }
 
 switch ($Command) {

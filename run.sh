@@ -9,16 +9,18 @@ usage() {
 Usage: ./run.sh [command]
 
 Commands:
+  all      Run full pipeline: up -> jdk -> test -> package (default)
   up       Build image and start container in background
   jdk      Show Java version used inside container
-  test     Run ./gradlew test in container (JDK 21)
-  package  Run ./gradlew clean build in container (default)
+  test     Run ./gradlew test in container (JDK 17)
+  package  Run ./gradlew clean build in container
   run      Show how to run Compose Desktop app (UI) correctly
-  run-local Run ./gradlew run on host (requires host JDK 21)
+  run-local Run ./gradlew run on host (requires host JDK 17)
   shell    Open interactive shell in running container
   down     Stop and remove compose resources
 
 Examples:
+  ./run.sh all
   ./run.sh up
   ./run.sh jdk
   ./run.sh package
@@ -37,9 +39,16 @@ exec_in_container() {
   docker compose -f "$COMPOSE_FILE" exec -T "$SERVICE" bash -lc "$cmd"
 }
 
-cmd="${1:-package}"
+cmd="${1:-all}"
 
 case "$cmd" in
+  all)
+    ensure_up
+    exec_in_container 'echo "JAVA_HOME=$JAVA_HOME" && java -version'
+    exec_in_container './gradlew test'
+    exec_in_container './gradlew clean build'
+    ;;
+
   up)
     ensure_up
     ;;
@@ -64,8 +73,8 @@ case "$cmd" in
 Compose Desktop app membutuhkan GUI/OpenGL dan tidak cocok dijalankan interaktif di container headless.
 
 Yang direkomendasikan:
-1) Build/test tetap lewat Docker JDK 21:
-   ./run.sh package
+1) Build/test tetap lewat Docker JDK 17:
+   ./run.sh all
 2) Jalankan UI di host:
    ./run.sh run-local
 MSG

@@ -23,6 +23,7 @@ function Show-Usage {
 }
 
 function Ensure-Up {
+  docker compose -f $ComposeFile down -v --remove-orphans
   docker compose -f $ComposeFile up -d --build $Service
 }
 

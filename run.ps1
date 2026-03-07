@@ -51,11 +51,14 @@ function Ensure-HostJdk17 {
 
 function Exec-HostGradle {
   param(
-    [string[]]$Args
+    [string[]]$TaskArgs
   )
-  & .\gradlew.bat @Args
+  if (-not $TaskArgs -or $TaskArgs.Count -eq 0) {
+    throw "No Gradle tasks provided to Exec-HostGradle."
+  }
+  & .\gradlew.bat @TaskArgs
   if ($LASTEXITCODE -ne 0) {
-    throw "Gradle command failed: gradlew.bat $($Args -join ' ')"
+    throw "Gradle command failed: gradlew.bat $($TaskArgs -join ' ')"
   }
 }
 
@@ -91,14 +94,14 @@ switch ($Command) {
   "win-installer" {
     Ensure-HostJdk17
     Write-Host "Installer Windows dijalankan di host (butuh JDK 17 di host)."
-    Exec-HostGradle @("packageExe", "packageMsi")
+    Exec-HostGradle -TaskArgs @("packageExe", "packageMsi")
     Write-Host "Output:"
     Write-Host "  build\compose\binaries\main\exe\"
     Write-Host "  build\compose\binaries\main\msi\"
   }
   "run-local" {
     Ensure-HostJdk17
-    Exec-HostGradle @("run")
+    Exec-HostGradle -TaskArgs @("run")
   }
   "shell" {
     Ensure-Up

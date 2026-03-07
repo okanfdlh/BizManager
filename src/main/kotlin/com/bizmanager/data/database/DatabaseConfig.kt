@@ -2,7 +2,6 @@ package com.bizmanager.data.database
 
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
-import org.jetbrains.exposed.sql.statements.StatementType
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.io.File
 
@@ -49,10 +48,11 @@ object DatabaseConfig {
             driver = "org.sqlite.JDBC"
         )
 
-        // Foreign keys must be enabled manually in SQLite per connection if needed.
-        // Exposed tries to handle this when dialect is sqlite, but we might want to ensure it via PRAGMA foreign_keys = ON;
         transaction {
-            exec("PRAGMA foreign_keys = ON;", explicitStatementType = StatementType.EXEC)
+            // Execute PRAGMA using plain JDBC statement (not query API).
+            connection.connection.createStatement().use { stmt ->
+                stmt.execute("PRAGMA foreign_keys = ON;")
+            }
             
             // We will create tables here later
             SchemaUtils.createMissingTablesAndColumns(

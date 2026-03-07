@@ -7,11 +7,11 @@ group = "com.bizmanager"
 version = "1.0-SNAPSHOT"
 
 tasks.withType<org.gradle.api.tasks.compile.JavaCompile>().configureEach {
-    options.release.set(21)
+    options.release.set(17)
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-    kotlinOptions.jvmTarget = "21"
+    kotlinOptions.jvmTarget = "17"
 }
 
 repositories {
@@ -57,6 +57,9 @@ compose.desktop {
             )
             packageName = "BizManager"
             packageVersion = "1.0.0"
+            windows {
+                console = true
+            }
             macOS {
                 bundleID = "com.bizmanager.app"
             }

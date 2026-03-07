@@ -3,6 +3,21 @@ set -euo pipefail
 
 COMPOSE_FILE="dockercompose.yml"
 SERVICE="bizmanager"
+LAST_STEP="initialization"
+
+print_failure_logs() {
+  local exit_code=$?
+  set +e
+  echo ""
+  echo "ERROR: command failed (step: ${LAST_STEP}, exit: ${exit_code})"
+  echo "---- Docker compose status ----"
+  docker compose -f "$COMPOSE_FILE" ps 2>/dev/null || true
+  echo "---- Last 200 container log lines (${SERVICE}) ----"
+  docker compose -f "$COMPOSE_FILE" logs --tail=200 "$SERVICE" 2>/dev/null || true
+  exit "$exit_code"
+}
+
+trap print_failure_logs ERR
 
 usage() {
   cat <<USAGE
@@ -31,11 +46,13 @@ USAGE
 }
 
 ensure_up() {
+  LAST_STEP="docker compose up"
   docker compose -f "$COMPOSE_FILE" up -d --build "$SERVICE"
 }
 
 exec_in_container() {
   local cmd="$1"
+  LAST_STEP="container exec: $cmd"
   docker compose -f "$COMPOSE_FILE" exec -T "$SERVICE" bash -lc "$cmd"
 }
 
@@ -45,8 +62,8 @@ case "$cmd" in
   all)
     ensure_up
     exec_in_container 'echo "JAVA_HOME=$JAVA_HOME" && java -version'
-    exec_in_container './gradlew test'
-    exec_in_container './gradlew clean build'
+    exec_in_container 'bash ./gradlew test'
+    exec_in_container 'bash ./gradlew clean build'
     ;;
 
   up)
@@ -60,12 +77,12 @@ case "$cmd" in
 
   test)
     ensure_up
-    exec_in_container './gradlew test'
+    exec_in_container 'bash ./gradlew test'
     ;;
 
   package)
     ensure_up
-    exec_in_container './gradlew clean build'
+    exec_in_container 'bash ./gradlew clean build'
     ;;
 
   run)
@@ -81,6 +98,7 @@ MSG
     ;;
 
   run-local)
+    LAST_STEP="host run-local"
     ./gradlew run
     ;;
 
@@ -90,6 +108,7 @@ MSG
     ;;
 
   down)
+    LAST_STEP="docker compose down"
     docker compose -f "$COMPOSE_FILE" down -v
     ;;
 

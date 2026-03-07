@@ -9,17 +9,18 @@ Aplikasi desktop manajemen bisnis berbasis Kotlin + Compose Desktop.
 - SQLite + Exposed ORM
 
 ## Prasyarat
-- JDK `21` (disarankan Temurin 21)
+- JDK `17` (disarankan Temurin 17)
 - Docker + Docker Compose (opsional, jika ingin run via container)
 
 ## Struktur File Penting
 - `build.gradle.kts`: konfigurasi build Gradle/Compose
-- `dockerfile.yml`: image Docker berbasis JDK 21
+- `dockerfile.yml`: image Docker berbasis JDK 17
 - `dockercompose.yml`: service untuk menjalankan Gradle di container
 - `run.sh`: helper script untuk build/test/run via Docker
+- `run.ps1`: helper script untuk Windows (PowerShell)
 
 ## Menjalankan Secara Lokal (tanpa Docker)
-Pastikan `JAVA_HOME` mengarah ke JDK 21.
+Pastikan `JAVA_HOME` mengarah ke JDK 17.
 
 ```bash
 ./gradlew run
@@ -32,7 +33,7 @@ Build artifact:
 ```
 
 ## Menjalankan dengan Docker
-Script `run.sh` akan memakai `dockercompose.yml`.
+Script `run.sh`/`run.ps1` akan memakai `dockercompose.yml`.
 
 Lihat bantuan:
 
@@ -43,14 +44,23 @@ Lihat bantuan:
 Perintah yang tersedia:
 
 ```bash
+./run.sh all      # jalankan semua tahap (default)
 ./run.sh up       # build image + start container background
-./run.sh jdk      # cek Java version di container (JDK 21)
+./run.sh jdk      # cek Java version di container (JDK 17)
 ./run.sh test     # jalankan unit test
-./run.sh package  # clean build (default)
+./run.sh package  # clean build
 ./run.sh run      # petunjuk run UI Compose Desktop
 ./run.sh run-local # jalankan UI di host
 ./run.sh shell    # masuk shell container
 ./run.sh down     # stop + hapus resource compose
+```
+
+Windows (PowerShell):
+
+```powershell
+.\run.ps1 all
+.\run.ps1 jdk
+.\run.ps1 package
 ```
 
 ## Catatan Build Installer

@@ -32,6 +32,7 @@ import com.bizmanager.presentation.screen.product.ProductListScreen
 import com.bizmanager.presentation.screen.receivable.ReceivableListScreen
 import com.bizmanager.presentation.screen.report.ReportPageScreen
 import com.bizmanager.presentation.screen.settings.SettingsScreen
+import kotlin.system.exitProcess
 
 @Composable
 @Preview
@@ -97,6 +98,7 @@ fun main() {
     } catch (e: Exception) {
         System.err.println("Failed to initialize database: ${e.message}")
         e.printStackTrace()
+        exitProcess(1)
     }
     
     // Wire dependencies
@@ -105,8 +107,6 @@ fun main() {
     val invoiceRepository = InvoiceRepository()
     val paymentRepository = PaymentRepository()
     val appSettingRepository = AppSettingRepository()
-    val logRepository = ActivityLogRepository()
-    
     val documentNumberGenerator = DocumentNumberGenerator(appSettingRepository)
     val invoiceService = InvoiceService(invoiceRepository, productRepository, documentNumberGenerator)
     val paymentService = PaymentService(paymentRepository, invoiceRepository, documentNumberGenerator)
@@ -130,5 +130,4 @@ fun main() {
         }
     }
 }
-
 

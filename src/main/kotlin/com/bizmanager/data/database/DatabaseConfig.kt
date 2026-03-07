@@ -8,6 +8,16 @@ import java.io.File
 
 object DatabaseConfig {
     private const val DB_NAME = "app.db"
+
+    private fun resolveWindowsDataDir(userHome: String): File {
+        val localAppData = System.getenv("LOCALAPPDATA")
+            ?: System.getenv("LocalAppData")
+        return if (!localAppData.isNullOrBlank()) {
+            File(localAppData, "BizManager")
+        } else {
+            File(userHome, "AppData/Local/BizManager")
+        }
+    }
     
     // Determine the location based on OS for "%LocalAppData%/<AppName>/app.db" equivalent
     val dbFolder: File by lazy {
@@ -15,13 +25,13 @@ object DatabaseConfig {
         val userHome = System.getProperty("user.home")
         
         val folder = when {
-            os.contains("win") -> File(System.getenv("LocalAppData"), "BizManager")
+            os.contains("win") -> resolveWindowsDataDir(userHome)
             os.contains("mac") -> File(userHome, "Library/Application Support/BizManager")
             else -> File(userHome, ".config/BizManager")
         }
         
-        if (!folder.exists()) {
-            folder.mkdirs()
+        if (!folder.exists() && !folder.mkdirs()) {
+            error("Failed to create database folder: ${folder.absolutePath}")
         }
         folder
     }

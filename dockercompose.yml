@@ -1,0 +1,19 @@
+services:
+  bizmanager:
+    build:
+      context: .
+      dockerfile: dockerfile.yml
+    container_name: bizmanager-dev
+    working_dir: /app
+    volumes:
+      - ./:/app
+      - gradle-cache:/home/gradle/.gradle
+    environment:
+      - JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF-8
+      - GRADLE_OPTS=-Dorg.gradle.daemon=false
+    stdin_open: true
+    tty: true
+    command: bash -lc "./gradlew clean build"
+
+volumes:
+  gradle-cache:

@@ -1,0 +1,30 @@
+# macOS
+.DS_Store
+
+# IntelliJ / Android Studio
+.idea/
+*.iml
+out/
+
+# VS Code
+.vscode/
+
+# Gradle / Kotlin build output and caches
+.gradle/
+build/
+.kotlin/
+
+# Logs
+*.log
+
+# Environment/local overrides
+.env
+.env.*
+!.env.example
+docker-compose.override.yml
+
+# Compose Desktop package artifacts
+*.dmg
+*.msi
+*.deb
+*.exe

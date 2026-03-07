@@ -49,11 +49,6 @@ object DatabaseConfig {
         )
 
         transaction {
-            // Execute PRAGMA using plain JDBC statement (not query API).
-            connection.connection.createStatement().use { stmt ->
-                stmt.execute("PRAGMA foreign_keys = ON;")
-            }
-            
             // We will create tables here later
             SchemaUtils.createMissingTablesAndColumns(
                 Customers,

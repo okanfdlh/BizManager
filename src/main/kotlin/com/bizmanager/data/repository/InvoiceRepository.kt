@@ -6,7 +6,9 @@ import com.bizmanager.domain.model.Invoice
 import com.bizmanager.domain.model.InvoiceItem
 import com.bizmanager.domain.model.InvoiceStatus
 import com.bizmanager.domain.model.PaymentStatus
+import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.time.LocalDateTime
 
@@ -104,7 +106,7 @@ class InvoiceRepository {
     }
 
     fun deleteItemsForInvoice(invoiceId: Int) = transaction {
-        InvoiceItems.deleteWhere { InvoiceItems.invoiceId eq invoiceId }
+        InvoiceItems.deleteWhere { InvoiceItems.invoiceId eq EntityID(invoiceId, Invoices) }
     }
 
     private fun mapToInvoice(row: ResultRow): Invoice = Invoice(

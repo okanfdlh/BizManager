@@ -43,10 +43,12 @@ Lihat bantuan:
 Perintah yang tersedia:
 
 ```bash
-./run.sh build    # build image
+./run.sh up       # build image + start container background
+./run.sh jdk      # cek Java version di container (JDK 21)
 ./run.sh test     # jalankan unit test
 ./run.sh package  # clean build (default)
-./run.sh run      # jalankan app task
+./run.sh run      # petunjuk run UI Compose Desktop
+./run.sh run-local # jalankan UI di host
 ./run.sh shell    # masuk shell container
 ./run.sh down     # stop + hapus resource compose
 ```
@@ -63,4 +65,3 @@ File yang tidak perlu dipush sudah diatur di `.gitignore` (cache/build/IDE/local
 - Nama: [Indirokan Fadhilah](https://github.com/okanfdlh)
 - Email: indirokan.fadhilah@gmail.com
 - Website: [indirokanfadhilah.vercel.app](https://indirokanfadhilah.vercel.app)
-

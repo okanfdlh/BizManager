@@ -9,36 +9,62 @@ usage() {
 Usage: ./run.sh [command]
 
 Commands:
-  build    Build Docker image only
-  test     Run Gradle tests in container
-  package  Build app artifacts in container (default)
-  run      Run Gradle desktop app task in container
-  shell    Open interactive shell in container
+  up       Build image and start container in background
+  jdk      Show Java version used inside container
+  test     Run ./gradlew test in container (JDK 21)
+  package  Run ./gradlew clean build in container (default)
+  run      Run ./gradlew run in container (JDK 21)
+  shell    Open interactive shell in running container
   down     Stop and remove compose resources
+
+Examples:
+  ./run.sh up
+  ./run.sh jdk
+  ./run.sh package
+  ./run.sh test
+  ./run.sh run
 USAGE
+}
+
+ensure_up() {
+  docker compose -f "$COMPOSE_FILE" up -d --build "$SERVICE"
+}
+
+exec_in_container() {
+  local cmd="$1"
+  docker compose -f "$COMPOSE_FILE" exec -T "$SERVICE" bash -lc "$cmd"
 }
 
 cmd="${1:-package}"
 
 case "$cmd" in
-  build)
-    docker compose -f "$COMPOSE_FILE" build
+  up)
+    ensure_up
+    ;;
+
+  jdk)
+    ensure_up
+    exec_in_container 'echo "JAVA_HOME=$JAVA_HOME" && java -version'
     ;;
 
   test)
-    docker compose -f "$COMPOSE_FILE" run --rm "$SERVICE" bash -lc "./gradlew test"
+    ensure_up
+    exec_in_container './gradlew test'
     ;;
 
   package)
-    docker compose -f "$COMPOSE_FILE" run --rm "$SERVICE" bash -lc "./gradlew clean build"
+    ensure_up
+    exec_in_container './gradlew clean build'
     ;;
 
   run)
-    docker compose -f "$COMPOSE_FILE" run --rm "$SERVICE" bash -lc "./gradlew run"
+    ensure_up
+    docker compose -f "$COMPOSE_FILE" exec "$SERVICE" bash -lc './gradlew run'
     ;;
 
   shell)
-    docker compose -f "$COMPOSE_FILE" run --rm "$SERVICE" bash
+    ensure_up
+    docker compose -f "$COMPOSE_FILE" exec "$SERVICE" bash
     ;;
 
   down)

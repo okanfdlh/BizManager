@@ -9,11 +9,12 @@ services:
       - ./:/app
       - gradle-cache:/home/gradle/.gradle
     environment:
+      - JAVA_HOME=/opt/java/openjdk
       - JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF-8
       - GRADLE_OPTS=-Dorg.gradle.daemon=false
     stdin_open: true
     tty: true
-    command: bash -lc "./gradlew clean build"
+    command: ["sleep", "infinity"]
 
 volumes:
   gradle-cache:

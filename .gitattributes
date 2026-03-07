@@ -1,0 +1,5 @@
+# Keep Gradle wrapper shell script executable-friendly across OS
+gradlew text eol=lf
+
+# Windows launcher should keep CRLF
+*.bat text eol=crlf

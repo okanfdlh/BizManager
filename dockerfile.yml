@@ -7,8 +7,13 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends bash curl unzip git ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
+# Copy wrapper script and ensure executable bit inside image layer.
+# This helps when project is cloned from Windows and file mode metadata is lost.
+COPY gradlew /app/gradlew
+RUN chmod +x /app/gradlew
+
 # Keep Gradle cache in a known writable path
 ENV GRADLE_USER_HOME=/home/gradle/.gradle
 
 # Default command can be overridden by docker compose
-CMD ["bash", "-lc", "./gradlew --version"]
+CMD ["bash", "-lc", "bash ./gradlew --version"]

@@ -24,6 +24,7 @@ dependencies {
     // Compose Desktop
     implementation(compose.desktop.currentOs)
     implementation(compose.material)
+    implementation(compose.material3)
     implementation(compose.materialIconsExtended)
 
     // Exposed ORM

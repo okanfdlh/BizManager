@@ -12,7 +12,7 @@ import com.bizmanager.data.repository.CustomerRepository
 import com.bizmanager.data.repository.InvoiceRepository
 import com.bizmanager.domain.model.Customer
 import com.bizmanager.domain.model.Invoice
-import com.bizmanager.presentation.screen.dashboard.SummaryCard
+import com.bizmanager.presentation.ui.toCurrencyLabel
 import java.math.BigDecimal
 
 @Composable
@@ -55,8 +55,8 @@ fun CustomerDetailScreen(
         Spacer(Modifier.height(16.dp))
         
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            SummaryCard("Total Omzet", totalOmzet)
-            SummaryCard("Sisa Piutang", totalPiutang)
+            CustomerSummaryCard("Total Omzet", totalOmzet)
+            CustomerSummaryCard("Sisa Piutang", totalPiutang)
         }
         
         Spacer(Modifier.height(24.dp))
@@ -77,12 +77,23 @@ fun CustomerDetailScreen(
                 Row(modifier = Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(inv.invoiceNumber, modifier = Modifier.weight(1f))
                     Text(inv.date.toLocalDate().toString(), modifier = Modifier.weight(1f))
-                    Text("Rp ${inv.grandTotal.toPlainString()}", modifier = Modifier.weight(1f))
-                    Text("Rp ${inv.balanceDue.toPlainString()}", modifier = Modifier.weight(1f), color = if (inv.balanceDue > BigDecimal.ZERO) MaterialTheme.colors.error else MaterialTheme.colors.onSurface)
+                    Text(inv.grandTotal.toCurrencyLabel(), modifier = Modifier.weight(1f))
+                    Text(inv.balanceDue.toCurrencyLabel(), modifier = Modifier.weight(1f), color = if (inv.balanceDue > BigDecimal.ZERO) MaterialTheme.colors.error else MaterialTheme.colors.onSurface)
                     Text(inv.paymentStatus.name, modifier = Modifier.weight(1f))
                 }
                 Divider()
             }
+        }
+    }
+}
+
+@Composable
+private fun CustomerSummaryCard(title: String, amount: BigDecimal) {
+    Card(modifier = Modifier.width(220.dp).padding(4.dp), elevation = 4.dp) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(title, style = MaterialTheme.typography.subtitle2)
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(amount.toCurrencyLabel(), style = MaterialTheme.typography.h6)
         }
     }
 }

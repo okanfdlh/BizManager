@@ -14,9 +14,11 @@ enum class Screen {
     PaymentList,
     PaymentForm,
     ReceivableList,
+    CustomerLedger,
     ReportPage,
     SettingsPage,
-    BackupRestore
+    BackupRestore,
+    AboutPage
 }
 
 data class NavigationState(

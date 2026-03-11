@@ -23,13 +23,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.MenuBook
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Inventory
-import androidx.compose.material.icons.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Receipt
@@ -122,7 +122,7 @@ private fun Sidebar(
                         )
                         IconButton(onClick = onToggleCollapse) {
                             Icon(
-                                imageVector = Icons.Default.KeyboardArrowRight,
+                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                 contentDescription = "Buka sidebar",
                                 tint = MaterialTheme.colorScheme.onPrimary
                             )
@@ -142,7 +142,7 @@ private fun Sidebar(
                             )
                             IconButton(onClick = onToggleCollapse) {
                                 Icon(
-                                    imageVector = Icons.Default.KeyboardArrowLeft,
+                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
                                     contentDescription = "Minimize sidebar",
                                     tint = MaterialTheme.colorScheme.onPrimary
                                 )

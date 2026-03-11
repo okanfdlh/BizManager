@@ -318,6 +318,7 @@ private fun GrowthHighlights(growthInsights: List<GrowthInsight>) {
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun LineTrendChart(points: List<MonthlyTrendPoint>) {
     if (points.isEmpty()) {
@@ -460,6 +461,7 @@ private fun DonutChart(
     centerValue: String
 ) {
     val total = slices.sumOf { it.value.toDouble() }.toFloat().takeIf { it > 0f } ?: 1f
+    val emptyColor = MaterialTheme.colorScheme.surfaceVariant
 
     Box(contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.size(180.dp)) {
@@ -471,7 +473,7 @@ private fun DonutChart(
 
             if (slices.all { it.value <= 0f }) {
                 drawArc(
-                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    color = emptyColor,
                     startAngle = 0f,
                     sweepAngle = 360f,
                     useCenter = false,

@@ -12,6 +12,7 @@ import com.bizmanager.data.repository.CustomerRepository
 import com.bizmanager.data.repository.InvoiceRepository
 import com.bizmanager.domain.model.Invoice
 import com.bizmanager.domain.service.AgingCalculator
+import com.bizmanager.presentation.ui.toCurrencyLabel
 import java.math.BigDecimal
 
 @Composable
@@ -64,25 +65,25 @@ fun ReceivableListScreen(
             Card(modifier = Modifier.padding(4.dp).weight(1f)) {
                 Column(modifier = Modifier.padding(8.dp)) {
                     Text("Total Piutang Berjalan", style = MaterialTheme.typography.caption)
-                    Text("Rp ${totalReceivables.toPlainString()}", style = MaterialTheme.typography.h6)
+                    Text(totalReceivables.toCurrencyLabel(), style = MaterialTheme.typography.h6)
                 }
             }
             Card(modifier = Modifier.padding(4.dp).weight(1f), backgroundColor = MaterialTheme.colors.secondary.copy(alpha=0.1f)) {
                 Column(modifier = Modifier.padding(8.dp)) {
                     Text("Overdue 1-30 Hari", style = MaterialTheme.typography.caption)
-                    Text("Rp ${total0To30.toPlainString()}", style = MaterialTheme.typography.h6)
+                    Text(total0To30.toCurrencyLabel(), style = MaterialTheme.typography.h6)
                 }
             }
             Card(modifier = Modifier.padding(4.dp).weight(1f), backgroundColor = MaterialTheme.colors.primary.copy(alpha=0.1f)) {
                 Column(modifier = Modifier.padding(8.dp)) {
                     Text("Overdue 31-90 Hari", style = MaterialTheme.typography.caption)
-                    Text("Rp ${total31To90.toPlainString()}", style = MaterialTheme.typography.h6)
+                    Text(total31To90.toCurrencyLabel(), style = MaterialTheme.typography.h6)
                 }
             }
             Card(modifier = Modifier.padding(4.dp).weight(1f), backgroundColor = MaterialTheme.colors.error.copy(alpha=0.1f)) {
                 Column(modifier = Modifier.padding(8.dp)) {
                     Text("Overdue > 90 Hari", style = MaterialTheme.typography.caption)
-                    Text("Rp ${totalMore90.toPlainString()}", style = MaterialTheme.typography.h6, color = MaterialTheme.colors.error)
+                    Text(totalMore90.toCurrencyLabel(), style = MaterialTheme.typography.h6, color = MaterialTheme.colors.error)
                 }
             }
         }
@@ -107,7 +108,7 @@ fun ReceivableListScreen(
                     Text(inv.invoiceNumber, modifier = Modifier.weight(1f))
                     Text(customerMap[inv.customerId] ?: "Unknown", modifier = Modifier.weight(1.5f))
                     Text(inv.dueDate.toLocalDate().toString(), modifier = Modifier.weight(1f))
-                    Text("Rp ${inv.balanceDue.toPlainString()}", modifier = Modifier.weight(1f))
+                    Text(inv.balanceDue.toCurrencyLabel(), modifier = Modifier.weight(1f))
 
                     val aging = AgingCalculator.calculateAging(inv.dueDate, inv.balanceDue)
                     val agingStr = when(aging?.name) {

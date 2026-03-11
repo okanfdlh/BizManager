@@ -16,6 +16,7 @@ import com.bizmanager.data.repository.InvoiceRepository
 import com.bizmanager.domain.model.Customer
 import com.bizmanager.domain.model.Invoice
 import com.bizmanager.domain.model.InvoiceStatus
+import com.bizmanager.presentation.ui.toCurrencyLabel
 import java.math.BigDecimal
 
 @Composable
@@ -66,7 +67,7 @@ fun InvoiceListScreen(
                     Text(inv.invoiceNumber, modifier = Modifier.weight(1.5f))
                     Text(inv.date.toLocalDate().toString(), modifier = Modifier.weight(1f))
                     Text(customers[inv.customerId] ?: "Unknown", modifier = Modifier.weight(2f))
-                    Text("Rp ${inv.grandTotal.toPlainString()}", modifier = Modifier.weight(1.5f))
+                    Text(inv.grandTotal.toCurrencyLabel(), modifier = Modifier.weight(1.5f))
                     
                     val statusColor = when(inv.invoiceStatus) {
                         InvoiceStatus.Draft -> MaterialTheme.colors.onSurface.copy(alpha=0.6f)
@@ -75,7 +76,7 @@ fun InvoiceListScreen(
                     }
                     Text(inv.invoiceStatus.name, color = statusColor, modifier = Modifier.weight(1f))
                     
-                    Text("Rp ${inv.balanceDue.toPlainString()}", modifier = Modifier.weight(1.5f), color = if (inv.balanceDue > BigDecimal.ZERO) MaterialTheme.colors.error else MaterialTheme.colors.onSurface)
+                    Text(inv.balanceDue.toCurrencyLabel(), modifier = Modifier.weight(1.5f), color = if (inv.balanceDue > BigDecimal.ZERO) MaterialTheme.colors.error else MaterialTheme.colors.onSurface)
                     
                     Row(modifier = Modifier.width(100.dp)) {
                         if (inv.invoiceStatus == InvoiceStatus.Draft) {

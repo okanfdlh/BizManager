@@ -11,6 +11,7 @@ import androidx.compose.ui.unit.dp
 import com.bizmanager.data.repository.InvoiceRepository
 import com.bizmanager.data.repository.PaymentRepository
 import com.bizmanager.domain.model.Payment
+import com.bizmanager.presentation.ui.toCurrencyLabel
 
 @Composable
 fun PaymentListScreen(
@@ -52,7 +53,7 @@ fun PaymentListScreen(
                     Text(invoiceMap[p.invoiceId] ?: "Unknown", modifier = Modifier.weight(1f))
                     Text(p.date.toLocalDate().toString(), modifier = Modifier.weight(1f))
                     Text(p.paymentMethod, modifier = Modifier.weight(1f))
-                    Text("Rp ${p.amount.toPlainString()}", modifier = Modifier.weight(1f))
+                    Text(p.amount.toCurrencyLabel(), modifier = Modifier.weight(1f))
                 }
                 Divider()
             }

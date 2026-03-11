@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.bizmanager.data.repository.ProductRepository
 import com.bizmanager.domain.model.Product
+import com.bizmanager.presentation.ui.toCurrencyLabel
 
 @Composable
 fun ProductListScreen(
@@ -55,8 +56,8 @@ fun ProductListScreen(
                 ) {
                     Text(p.code, modifier = Modifier.weight(1f))
                     Text(p.name, modifier = Modifier.weight(2f))
-                    Text("Rp ${p.costPrice.toPlainString()}", modifier = Modifier.weight(1f))
-                    Text("Rp ${p.sellPrice.toPlainString()}", modifier = Modifier.weight(1f))
+                    Text(p.costPrice.toCurrencyLabel(), modifier = Modifier.weight(1f))
+                    Text(p.sellPrice.toCurrencyLabel(), modifier = Modifier.weight(1f))
                     Text(if (p.isActive) "Aktif" else "Nonaktif", color = if (p.isActive) MaterialTheme.colors.primary else MaterialTheme.colors.error, modifier = Modifier.width(100.dp))
                     
                     Row(modifier = Modifier.width(150.dp)) {

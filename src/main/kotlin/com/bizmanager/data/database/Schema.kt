@@ -101,7 +101,7 @@ object AppSettings : IntIdTable("app_settings") { // Explicit columns
     val invoicePrefix = varchar("invoice_prefix", 20).default("INV")
     val paymentPrefix = varchar("payment_prefix", 20).default("PAY")
     val defaultDueDays = integer("default_due_days").default(30)
-    val currency = varchar("currency", 20).default("Rp")
+    val currency = varchar("currency", 20).default("Rp.")
     
     val backupFolder = text("backup_folder").nullable()
     

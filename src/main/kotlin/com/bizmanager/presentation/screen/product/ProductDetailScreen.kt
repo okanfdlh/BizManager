@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.bizmanager.data.repository.ProductRepository
 import com.bizmanager.domain.model.Product
+import com.bizmanager.presentation.ui.toCurrencyLabel
 
 @Composable
 fun ProductDetailScreen(
@@ -42,8 +43,8 @@ fun ProductDetailScreen(
         Spacer(Modifier.height(16.dp))
         
         Text("Total Terjual (Qty): $totalQtySold", style = MaterialTheme.typography.h6)
-        Text("Total Omzet Historis: Rp $totalOmzet")
-        Text("Total Laba Historis: Rp $totalProfit")
+        Text("Total Omzet Historis: ${totalOmzet.toCurrencyLabel()}")
+        Text("Total Laba Historis: ${totalProfit.toCurrencyLabel()}")
         
         Spacer(Modifier.height(24.dp))
         Text("Disini nantinya akan ada tabel Invoice yang menampung barang ini (opsional)")

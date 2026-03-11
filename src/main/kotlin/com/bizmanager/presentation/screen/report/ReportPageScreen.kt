@@ -11,6 +11,7 @@ import com.bizmanager.domain.service.ExcelExportService
 import com.bizmanager.domain.service.ReportService
 import com.bizmanager.domain.service.SalesReport
 import com.bizmanager.domain.service.SalesSummary
+import com.bizmanager.presentation.ui.toCurrencyLabel
 import java.io.File
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -164,6 +165,6 @@ private fun chooseExcelOutputFile(startDateStr: String, endDateStr: String): Fil
 fun ReportRow(label: String, amount: java.math.BigDecimal) {
     Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
         Text(label, style = MaterialTheme.typography.subtitle1)
-        Text("Rp ${amount.toPlainString()}", style = MaterialTheme.typography.h6)
+        Text(amount.toCurrencyLabel(), style = MaterialTheme.typography.h6)
     }
 }

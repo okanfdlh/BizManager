@@ -91,7 +91,7 @@ data class AppSetting(
     val invoicePrefix: String = "INV",
     val paymentPrefix: String = "PAY",
     val defaultDueDays: Int = 30,
-    val currency: String = "Rp",
+    val currency: String = "Rp.",
     val backupFolder: String? = null,
     val createdAt: LocalDateTime = LocalDateTime.now(),
     val updatedAt: LocalDateTime = LocalDateTime.now()

@@ -68,7 +68,7 @@ fun SettingsScreen(
                 Divider(modifier = Modifier.padding(vertical = 8.dp))
                 OutlinedTextField(value = invoicePrefix, onValueChange = { invoicePrefix = it }, label = { Text("Prefix Invoice (Mis: INV)") }, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(value = paymentPrefix, onValueChange = { paymentPrefix = it }, label = { Text("Prefix Pembayaran (Mis: PAY)") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = currency, onValueChange = { currency = it }, label = { Text("Mata Uang (Mis: Rp)") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = currency, onValueChange = { currency = it }, label = { Text("Mata Uang (Mis: Rp.)") }, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(value = backupFolder, onValueChange = { backupFolder = it }, label = { Text("Folder Backup Default") }, modifier = Modifier.fillMaxWidth())
             }
         }
@@ -85,7 +85,7 @@ fun SettingsScreen(
                         email = email,
                         invoicePrefix = invoicePrefix.ifBlank { "INV" },
                         paymentPrefix = paymentPrefix.ifBlank { "PAY" },
-                        currency = currency.ifBlank { "Rp" },
+                        currency = currency.ifBlank { "Rp." },
                         backupFolder = backupFolder
                     )
                     appSettingRepository.updateSettings(updated)

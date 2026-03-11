@@ -72,7 +72,7 @@ fun CustomerDetailScreen(
         }
         Divider()
 
-        LazyColumn {
+        LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f)) {
             items(invoices) { inv ->
                 Row(modifier = Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(inv.invoiceNumber, modifier = Modifier.weight(1f))

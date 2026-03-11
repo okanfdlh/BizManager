@@ -1,393 +1,351 @@
-# Tutorial Penggunaan BizManager
+# Panduan Penggunaan BizManager
 
-Dokumen ini ditujukan untuk user Windows yang akan memasang dan memakai BizManager sehari-hari.
+Panduan ini dibuat untuk pengguna umum. Bahasa sengaja dibuat sederhana agar mudah diikuti.
 
-BizManager adalah aplikasi desktop offline untuk:
-- mengelola customer
-- mengelola produk
-- membuat invoice
+BizManager dipakai untuk membantu usaha dalam:
+- menyimpan data pelanggan
+- menyimpan data barang
+- membuat tagihan penjualan
 - mencatat pembayaran
-- memantau piutang
-- melihat buku besar customer
-- melihat ringkasan dashboard dan laporan
+- melihat sisa tagihan pelanggan
+- melihat ringkasan usaha
 
-## 1. Kebutuhan Sistem
+## 1. Sebelum Mulai
 
-Sebelum instalasi, pastikan:
+Pastikan:
 - menggunakan Windows 10 atau Windows 11
-- file installer `BizManager-<versi>.exe` sudah tersedia
-- user memiliki izin untuk menjalankan installer
+- file pemasangan aplikasi sudah tersedia, misalnya `BizManager-1.0.0.exe`
 
-Untuk user biasa:
-- tidak perlu install SQLite
-- tidak perlu install JDK
-- tidak perlu koneksi internet untuk memakai aplikasi setelah terpasang
+Untuk memakai aplikasi ini:
+- tidak perlu memasang aplikasi tambahan
+- tidak perlu internet saat digunakan sehari-hari
 
-## 2. Cara Install EXE di Windows
+## 2. Cara Memasang Aplikasi di Windows
 
-1. Buka folder tempat file installer disimpan.
-2. Jalankan file `BizManager-<versi>.exe`.
-3. Jika muncul peringatan Windows SmartScreen:
+1. Buka folder tempat file pemasangan disimpan.
+2. Klik dua kali file `BizManager-<versi>.exe`.
+3. Jika muncul peringatan dari Windows:
    - klik `More info`
-   - klik `Run anyway`
-4. Ikuti langkah instalasi sampai selesai.
-5. Setelah selesai, jalankan aplikasi dari:
-   - Start Menu, atau
-   - shortcut desktop, atau
-   - folder instalasi, biasanya `C:\Program Files\BizManager\`
+   - lalu klik `Run anyway`
+4. Ikuti langkah pemasangan sampai selesai.
+5. Setelah selesai, buka aplikasi dari:
+   - Start Menu
+   - shortcut di desktop
+   - atau folder `C:\Program Files\BizManager\`
 
-## 3. Saat Pertama Kali Aplikasi Dibuka
+## 3. Saat Aplikasi Dibuka Pertama Kali
 
-Saat pertama kali dibuka, aplikasi akan otomatis membuat database SQLite lokal.
+Saat pertama kali dibuka, aplikasi akan langsung menyiapkan tempat penyimpanan data.
 
-Lokasi database di Windows:
+Semua data aplikasi disimpan di komputer Windows Anda. Biasanya lokasinya ada di:
 
 ```text
 C:\Users\<NamaUser>\AppData\Local\BizManager\app.db
 ```
 
+Anda tidak perlu membuka file tersebut secara manual. Cukup gunakan aplikasi seperti biasa.
+
 Catatan:
-- seluruh data aplikasi disimpan di file database tersebut
-- jika aplikasi di-uninstall, file database biasanya tetap ada kecuali dihapus manual
-- jika pindah device, file backup database dapat dipakai untuk restore
+- semua data tersimpan di komputer yang dipakai
+- jika ganti komputer, data bisa dipindahkan lewat menu cadangan data
+- jika aplikasi dipasang ulang, data lama biasanya masih tetap ada
 
-## 4. Gambaran Menu Utama
+## 4. Pengenalan Menu
 
-Menu yang tersedia di sidebar:
+Di sebelah kiri aplikasi ada beberapa menu utama.
 
 ### Dashboard
 
-Menampilkan ringkasan bisnis, seperti:
-- omzet periode berjalan
-- laba kotor dan laba bersih
-- pembayaran masuk
-- piutang aktif
-- penjualan hutang vs non-hutang
-- tren performa dan customer dengan piutang terbesar
+Menu ini menampilkan ringkasan usaha, seperti:
+- total penjualan
+- keuntungan
+- pembayaran yang sudah masuk
+- sisa tagihan pelanggan
+
+Gunakan menu ini untuk melihat gambaran usaha secara cepat.
 
 ### Customers
 
-Dipakai untuk:
-- menambah customer baru
-- mengedit data customer
-- melihat histori invoice customer
+Menu ini dipakai untuk menyimpan data pelanggan.
 
-Field utama customer:
-- kode
-- nama
-- perusahaan
-- telepon
+Yang bisa dilakukan:
+- menambah pelanggan baru
+- mengubah data pelanggan
+- melihat riwayat tagihan pelanggan
+
+Data yang biasanya diisi:
+- kode pelanggan
+- nama pelanggan
+- nama perusahaan
+- nomor telepon
 - email
 - alamat
 - catatan
-- status aktif
 
 ### Products
 
-Dipakai untuk:
-- menambah produk
-- mengedit produk
-- mengaktifkan/nonaktifkan produk
+Menu ini dipakai untuk menyimpan data barang.
 
-Field utama produk:
-- kode produk
-- nama produk
+Yang bisa dilakukan:
+- menambah barang
+- mengubah data barang
+- mengaktifkan atau menonaktifkan barang
+
+Data yang biasanya diisi:
+- kode barang
+- nama barang
 - kategori
 - satuan
 - harga modal
 - harga jual
-- status aktif
 
 ### Invoices
 
-Dipakai untuk membuat invoice customer.
+Menu ini dipakai untuk membuat tagihan penjualan.
 
-Fitur utama:
-- pilih customer
-- tambah item produk
-- isi qty
-- isi diskon per item
-- isi biaya tambahan internal
-- isi catatan
-- simpan draft
-- post invoice
+Yang bisa dilakukan:
+- memilih pelanggan
+- menambahkan barang ke tagihan
+- mengisi jumlah barang
+- memberi potongan harga jika ada
+- menambah catatan
+- menyimpan tagihan
 
-Catatan:
-- invoice minimal memiliki 1 item
-- hanya produk aktif yang sebaiknya dipakai
-- invoice yang sudah `posted` dipakai untuk proses pembayaran
-- jatuh tempo default mengikuti sistem yang sudah disiapkan aplikasi
+Di menu ini ada dua pilihan:
+- `Simpan Draft`: dipakai jika tagihan belum final
+- `Post Invoice`: dipakai jika tagihan sudah final dan siap ditagihkan
 
 ### Payments
 
-Dipakai untuk mencatat pembayaran dari customer.
+Menu ini dipakai untuk mencatat pembayaran dari pelanggan.
 
-Fitur utama:
-- memilih invoice yang masih punya sisa tagihan
-- mengisi nominal pembayaran
-- mengisi metode pembayaran
-- mengisi nomor referensi
-- menyimpan pembayaran
+Yang biasanya diisi:
+- tagihan yang dibayar
+- jumlah pembayaran
+- cara pembayaran
+- nomor referensi jika ada
+- catatan
 
-Catatan:
-- hanya invoice yang belum lunas yang tampil untuk dibayar
-- nominal akan otomatis mudah diisi karena sisa tagihan ditampilkan
+Setelah pembayaran disimpan, sisa tagihan pelanggan akan berkurang otomatis.
 
 ### Piutang
 
-Dipakai untuk memantau invoice yang masih outstanding.
+Menu ini dipakai untuk melihat tagihan yang belum lunas.
 
-Biasanya dipakai untuk:
-- melihat sisa tagihan customer
-- memantau invoice yang belum lunas
-- memantau invoice yang mendekati atau melewati jatuh tempo
+Gunanya:
+- melihat pelanggan yang masih punya tagihan
+- melihat sisa tagihan
+- membantu penagihan
 
 ### Buku Besar Customer
 
-Dipakai untuk melihat histori lengkap per customer.
+Menu ini dipakai untuk melihat riwayat lengkap per pelanggan.
 
-Alur menu ini:
-- cari customer
-- pilih customer dari dropdown
-- lihat semua invoice customer
-- lihat item produk per invoice
-- lihat riwayat pembayaran per invoice
-- lihat status invoice
-- lihat total hutang per invoice
-- lihat total hutang customer secara keseluruhan
+Di sini Anda bisa melihat:
+- semua tagihan pelanggan
+- barang apa saja yang ada di tiap tagihan
+- riwayat pembayaran
+- tagihan yang masih berjalan
+- tagihan yang sudah lunas
 
-Menu ini cocok dipakai saat:
-- ada customer menanyakan rincian tagihan
-- perlu audit pembayaran customer
-- perlu mengecek invoice mana yang masih ongoing atau sudah lunas
+Menu ini sangat berguna saat pelanggan menanyakan rincian tagihan mereka.
 
 ### Reports
 
-Dipakai untuk melihat laporan periode tertentu.
+Menu ini dipakai untuk melihat ringkasan dalam rentang tanggal tertentu.
 
 Cara pakai:
-1. isi tanggal awal dengan format `YYYY-MM-DD`
-2. isi tanggal akhir dengan format `YYYY-MM-DD`
+1. isi tanggal awal
+2. isi tanggal akhir
 3. klik `Cari`
 
-Ringkasan laporan yang ditampilkan:
-- total omzet
-- total laba kotor
-- total laba bersih
+Menu ini membantu melihat:
+- total penjualan
+- total keuntungan
 - total pembayaran masuk
-- total piutang baru pada periode tersebut
+- total tagihan yang muncul pada periode tersebut
 
 ### Settings
 
-Dipakai untuk mengatur data dasar aplikasi.
+Menu ini dipakai untuk mengisi pengaturan dasar aplikasi.
 
-Data yang bisa diisi:
-- nama perusahaan
-- alamat perusahaan
-- telepon
+Yang sebaiknya diisi:
+- nama usaha
+- alamat usaha
+- nomor telepon
 - email
-- prefix invoice
-- prefix pembayaran
+- awalan nomor tagihan
+- awalan nomor pembayaran
 - mata uang
-- folder backup default
+- folder penyimpanan cadangan data
 
-Disarankan menu ini diisi lebih dulu sebelum mulai transaksi.
+Sebaiknya menu ini diisi lebih dulu sebelum aplikasi digunakan.
 
 ### Backup & Restore
 
-Dipakai untuk mengamankan data aplikasi.
+Menu ini dipakai untuk menyimpan cadangan data dan mengembalikan data lama.
 
-Fitur:
-- backup database ke folder tujuan
-- restore database dari file `.db`
+Mudahnya:
+- `Backup` berarti membuat salinan data
+- `Restore` berarti mengembalikan data dari salinan yang pernah dibuat
 
-Catatan:
-- restore akan menimpa data aktif
-- sistem menyiapkan auto-backup sebelum file database diganti
+Gunakan menu ini dengan hati-hati, terutama saat mengembalikan data lama.
 
 ### Tentang Aplikasi
 
-Berisi informasi singkat aplikasi dan author:
-- Indirokan Fadhilah
-- indirokanfadhilah@gmail.com
-- indirokanfadhilah.vercel.app
+Menu ini berisi informasi singkat tentang aplikasi dan pembuatnya.
 
-## 5. Alur Penggunaan yang Disarankan
+## 5. Urutan Penggunaan yang Disarankan
 
-Urutan pemakaian yang paling aman:
+Supaya lebih mudah, gunakan aplikasi dengan urutan berikut.
 
-### Langkah 1: Isi Pengaturan Aplikasi
+### Langkah 1: Isi Pengaturan
 
-Buka `Settings`, lalu isi:
-- nama perusahaan
-- prefix invoice
-- prefix pembayaran
+Buka `Settings`, lalu isi data dasar usaha:
+- nama usaha
+- awalan nomor tagihan
+- awalan nomor pembayaran
 - mata uang
-- folder backup
+- folder cadangan data
 
-Setelah itu klik `Simpan Pengaturan`.
+Lalu klik `Simpan Pengaturan`.
 
-### Langkah 2: Tambahkan Customer
+### Langkah 2: Masukkan Data Pelanggan
 
-Buka `Customers`, lalu tambahkan data customer.
+Buka `Customers`, lalu tambahkan pelanggan.
 
 Minimal isi:
 - kode
 - nama
 
-Simpan setelah selesai.
+Setelah selesai, klik `Simpan`.
 
-### Langkah 3: Tambahkan Produk
+### Langkah 3: Masukkan Data Barang
 
-Buka `Products`, lalu tambahkan produk yang akan dijual.
+Buka `Products`, lalu tambahkan barang yang dijual.
 
 Minimal isi:
-- kode produk
-- nama produk
+- kode barang
+- nama barang
 - harga modal
 - harga jual
 
-Pastikan produk dalam status aktif agar muncul saat membuat invoice.
+Pastikan barang aktif agar bisa dipilih saat membuat tagihan.
 
-### Langkah 4: Buat Invoice
+### Langkah 4: Buat Tagihan
 
 Buka `Invoices`, lalu:
-1. pilih customer
-2. tambah item invoice
-3. pilih produk
-4. isi qty
-5. isi diskon jika ada
-6. isi biaya tambahan jika ada
-7. isi catatan jika perlu
-8. pilih:
-   - `Simpan Draft` jika belum final
-   - `Post Invoice` jika sudah final
+1. pilih pelanggan
+2. tambahkan barang
+3. isi jumlah barang
+4. isi potongan harga jika ada
+5. isi catatan jika perlu
+6. pilih `Simpan Draft` atau `Post Invoice`
 
-Gunakan `Post Invoice` jika invoice sudah siap ditagihkan.
+Jika tagihan sudah benar dan siap dipakai, pilih `Post Invoice`.
 
 ### Langkah 5: Catat Pembayaran
 
 Buka `Payments`, lalu:
-1. pilih invoice yang akan dibayar
-2. isi nominal pembayaran
-3. isi metode pembayaran
-4. isi nomor referensi bila ada
+1. pilih tagihan yang dibayar
+2. isi jumlah pembayaran
+3. pilih cara pembayaran
+4. isi catatan jika perlu
 5. klik `Simpan Pembayaran`
 
-Setelah pembayaran tersimpan, status tagihan akan ikut berubah.
+### Langkah 6: Pantau Sisa Tagihan
 
-### Langkah 6: Pantau Piutang
+Buka `Piutang` untuk melihat:
+- siapa yang masih punya tagihan
+- berapa sisa tagihannya
 
-Buka `Piutang` untuk:
-- melihat invoice yang belum lunas
-- melihat sisa tagihan
-- memprioritaskan penagihan
-
-### Langkah 7: Cek Buku Besar Customer
+### Langkah 7: Cek Rincian Pelanggan
 
 Buka `Buku Besar Customer`, lalu:
-1. cari customer
-2. pilih customer
-3. cek daftar invoice
-4. cek produk pada tiap invoice
-5. cek histori pembayaran
-6. cek sisa hutang per invoice
+1. cari nama pelanggan
+2. pilih pelanggan
+3. lihat semua tagihan
+4. lihat riwayat pembayaran
+5. lihat sisa tagihan yang masih ada
 
-Menu ini paling cocok untuk pengecekan detail customer.
-
-### Langkah 8: Cek Dashboard dan Reports
+### Langkah 8: Lihat Ringkasan
 
 Gunakan:
-- `Dashboard` untuk ringkasan cepat
-- `Reports` untuk ringkasan periode tertentu
+- `Dashboard` untuk melihat gambaran cepat
+- `Reports` untuk melihat ringkasan berdasarkan tanggal
 
-## 6. Backup Data
+## 6. Cara Menyimpan Cadangan Data
 
-Disarankan melakukan backup berkala, misalnya:
+Sebaiknya lakukan cadangan data secara rutin, misalnya:
 - setiap akhir hari
 - setiap akhir minggu
-- sebelum reinstall aplikasi
-- sebelum restore database
+- sebelum ganti komputer
+- sebelum mengembalikan data lama
 
-Cara backup:
+Caranya:
 1. buka `Backup & Restore`
-2. isi folder tujuan backup
+2. isi folder tujuan penyimpanan
 3. klik `Proses Backup Sekarang`
-4. simpan file backup dengan aman
+4. simpan file cadangan dengan baik
 
-## 7. Restore Data
+## 7. Cara Mengembalikan Data Lama
 
-Gunakan restore hanya jika perlu mengembalikan data lama.
+Jika ingin memakai data lama:
 
-Cara restore:
 1. buka `Backup & Restore`
-2. isi path lengkap file backup `.db`
+2. masukkan lokasi file cadangan
 3. klik `Jalankan Restore Data`
-4. restart aplikasi bila diperlukan
+4. tutup dan buka kembali aplikasi jika perlu
 
-Contoh path file backup:
+Contoh lokasi file cadangan:
 
 ```text
 C:\Backup\BizManager\backup-2026-03-11.db
 ```
 
-## 8. Troubleshooting Dasar
+## 8. Jika Ada Kendala
 
-### Aplikasi tidak bisa dibuka
+### Aplikasi tidak mau terbuka
 
-Periksa:
-- instalasi sudah selesai sempurna
-- jalankan ulang dari Start Menu
-- jika perlu restart Windows
+Coba langkah berikut:
+- tutup aplikasi lalu buka lagi
+- restart komputer
+- pastikan pemasangan aplikasi sudah selesai
 
-Jika build aplikasi berasal dari tim internal, minta file installer terbaru.
+Jika masih tidak bisa, minta file pemasangan terbaru dari tim Anda.
 
 ### Data tidak muncul
 
-Periksa:
-- apakah Anda sedang memakai database yang benar
-- apakah sebelumnya pernah melakukan restore dari file lama
+Coba periksa:
+- apakah sebelumnya Anda baru mengembalikan data lama
+- apakah Anda sedang memakai komputer yang benar
 
-Lokasi database aktif:
+### Ingin pindah ke komputer lain
 
-```text
-C:\Users\<NamaUser>\AppData\Local\BizManager\app.db
-```
+Langkah yang aman:
+1. buat cadangan data di komputer lama
+2. salin file cadangan ke komputer baru
+3. pasang BizManager di komputer baru
+4. kembalikan data dari file cadangan tadi
 
-### Ingin pindah data ke komputer lain
+## 9. Ringkasan Singkat
 
-Langkah aman:
-1. lakukan backup dari komputer lama
-2. salin file backup
-3. install BizManager di komputer baru
-4. restore file backup di komputer baru
+Urutan paling mudah:
 
-### Apakah perlu install SQLite?
-
-Tidak perlu. SQLite sudah dipakai internal oleh aplikasi.
-
-### Apakah perlu install JDK?
-
-Tidak perlu untuk user biasa yang hanya memakai aplikasi hasil installer.
-
-## 9. Ringkasan Pemakaian Cepat
-
-Urutan paling singkat:
-
-1. install `BizManager.exe`
+1. pasang aplikasi
 2. buka aplikasi
 3. isi `Settings`
 4. tambah `Customers`
 5. tambah `Products`
 6. buat `Invoices`
 7. catat `Payments`
-8. pantau `Piutang`
+8. cek `Piutang`
 9. cek `Buku Besar Customer`
 10. lakukan `Backup` rutin
 
 ## 10. Kontak
 
-Informasi author aplikasi:
+Informasi pembuat aplikasi:
 - Nama: Indirokan Fadhilah
-- Contact: indirokanfadhilah@gmail.com
+- Email: indirokanfadhilah@gmail.com
 - Website: indirokanfadhilah.vercel.app

@@ -57,7 +57,7 @@ fun InvoiceListScreen(
         }
         Divider()
 
-        LazyColumn {
+        LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f)) {
             items(invoices) { inv ->
                 Row(
                     modifier = Modifier.fillMaxWidth().clickable { onNavigateToDetail(inv.id) }.padding(8.dp),

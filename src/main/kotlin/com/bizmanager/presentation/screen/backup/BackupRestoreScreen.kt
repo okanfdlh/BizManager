@@ -1,5 +1,7 @@
 package com.bizmanager.presentation.screen.backup
 
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.runtime.*
@@ -22,7 +24,12 @@ fun BackupRestoreScreen(
         backupFolder = appSettingRepository.getSettings().backupFolder ?: System.getProperty("user.home") + "/Desktop"
     }
 
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp)
+    ) {
         Text("Backup & Restore Database", style = MaterialTheme.typography.h4)
         Spacer(Modifier.height(8.dp))
         Text("Modul ini menangani pencadangan dan pemulihan database offline Anda.", style = MaterialTheme.typography.body1)

@@ -42,7 +42,7 @@ fun PaymentListScreen(
         }
         Divider()
 
-        LazyColumn {
+        LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f)) {
             items(payments) { p ->
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(8.dp),

@@ -1,5 +1,7 @@
 package com.bizmanager.presentation.screen.product
 
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.runtime.*
@@ -42,7 +44,12 @@ fun ProductFormScreen(
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp)
+    ) {
         Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
             Text(if (productId == null) "Tambah Produk Baru" else "Edit Produk", style = MaterialTheme.typography.h4)
             Button(onClick = onBack) { Text("Kembali") }

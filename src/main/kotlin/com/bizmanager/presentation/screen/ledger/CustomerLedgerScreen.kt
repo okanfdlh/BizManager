@@ -181,7 +181,9 @@ fun CustomerLedgerScreen(
                 val report = ledgerReport!!
                 LedgerSummary(report)
                 LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     items(report.invoices) { entry ->

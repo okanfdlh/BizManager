@@ -1,5 +1,7 @@
 package com.bizmanager.presentation.screen.settings
 
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.runtime.*
@@ -38,7 +40,12 @@ fun SettingsScreen(
         backupFolder = s.backupFolder ?: ""
     }
 
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp)
+    ) {
         Text("Pengaturan Aplikasi", style = MaterialTheme.typography.h4)
         Spacer(Modifier.height(16.dp))
 

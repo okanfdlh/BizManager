@@ -43,6 +43,9 @@ dependencies {
     
     // Logging (optional but recommended for DB queries)
     implementation("org.slf4j:slf4j-simple:2.0.12")
+
+    // Excel export
+    implementation("org.apache.poi:poi-ooxml:5.2.5")
 }
 
 compose.desktop {

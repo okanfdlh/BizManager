@@ -98,7 +98,7 @@ fun ReceivableListScreen(
         }
         Divider()
 
-        LazyColumn {
+        LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f)) {
             items(overdueInvoices) { inv ->
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(8.dp),

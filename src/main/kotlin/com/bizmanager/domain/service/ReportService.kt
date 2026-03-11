@@ -22,6 +22,63 @@ import java.util.Locale
 
 class ReportService {
 
+    fun getSalesReport(startDate: LocalDateTime, endDate: LocalDateTime): SalesReport = transaction {
+        val invoiceRows = Invoices.select {
+            (Invoices.date greaterEq startDate) and
+                (Invoices.date lessEq endDate) and
+                (Invoices.invoiceStatus neq InvoiceStatus.Cancelled.name)
+        }.toList()
+
+        val paymentRows = Payments.select {
+            (Payments.date greaterEq startDate) and
+                (Payments.date lessEq endDate)
+        }.toList()
+
+        val customerNames = Customers.selectAll().associate { row ->
+            row[Customers.id].value to row[Customers.name]
+        }
+
+        val invoices = invoiceRows.map { row ->
+            SalesReportInvoiceRow(
+                invoiceId = row[Invoices.id].value,
+                invoiceNumber = row[Invoices.invoiceNumber],
+                invoiceDate = row[Invoices.date],
+                dueDate = row[Invoices.dueDate],
+                customerName = customerNames[row[Invoices.customerId].value] ?: "Customer #${row[Invoices.customerId].value}",
+                invoiceStatus = row[Invoices.invoiceStatus],
+                paymentStatus = row[Invoices.paymentStatus],
+                grandTotal = row[Invoices.grandTotal],
+                totalPaid = row[Invoices.totalPaid],
+                balanceDue = row[Invoices.balanceDue],
+                grossProfit = row[Invoices.grossProfit],
+                netProfit = row[Invoices.netProfit]
+            )
+        }
+
+        val invoiceById = invoices.associateBy { it.invoiceId }
+
+        val payments = paymentRows.map { row ->
+            val invoice = invoiceById[row[Payments.invoiceId].value]
+            SalesReportPaymentRow(
+                paymentNumber = row[Payments.paymentNumber],
+                paymentDate = row[Payments.date],
+                invoiceNumber = invoice?.invoiceNumber ?: "Invoice #${row[Payments.invoiceId].value}",
+                customerName = invoice?.customerName ?: "-",
+                paymentMethod = row[Payments.paymentMethod],
+                amount = row[Payments.amount],
+                reference = row[Payments.reference]
+            )
+        }
+
+        SalesReport(
+            startDate = startDate,
+            endDate = endDate,
+            summary = buildSalesSummary(invoiceRows, paymentRows),
+            invoices = invoices,
+            payments = payments
+        )
+    }
+
     fun getSalesSummary(startDate: LocalDateTime, endDate: LocalDateTime): SalesSummary = transaction {
         val invoices = Invoices.select {
             (Invoices.date greaterEq startDate) and
@@ -203,6 +260,39 @@ data class SalesSummary(
     val totalNetProfit: BigDecimal,
     val totalReceivables: BigDecimal,
     val totalPaymentsReceived: BigDecimal
+)
+
+data class SalesReport(
+    val startDate: LocalDateTime,
+    val endDate: LocalDateTime,
+    val summary: SalesSummary,
+    val invoices: List<SalesReportInvoiceRow>,
+    val payments: List<SalesReportPaymentRow>
+)
+
+data class SalesReportInvoiceRow(
+    val invoiceId: Int,
+    val invoiceNumber: String,
+    val invoiceDate: LocalDateTime,
+    val dueDate: LocalDateTime,
+    val customerName: String,
+    val invoiceStatus: String,
+    val paymentStatus: String,
+    val grandTotal: BigDecimal,
+    val totalPaid: BigDecimal,
+    val balanceDue: BigDecimal,
+    val grossProfit: BigDecimal,
+    val netProfit: BigDecimal
+)
+
+data class SalesReportPaymentRow(
+    val paymentNumber: String,
+    val paymentDate: LocalDateTime,
+    val invoiceNumber: String,
+    val customerName: String,
+    val paymentMethod: String,
+    val amount: BigDecimal,
+    val reference: String?
 )
 
 data class DashboardReport(

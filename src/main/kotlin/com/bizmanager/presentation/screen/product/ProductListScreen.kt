@@ -47,7 +47,7 @@ fun ProductListScreen(
         }
         Divider()
 
-        LazyColumn {
+        LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f)) {
             items(products) { p ->
                 Row(
                     modifier = Modifier.fillMaxWidth().clickable { onNavigateToDetail(p.id) }.padding(8.dp),

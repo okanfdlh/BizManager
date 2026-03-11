@@ -14,8 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -98,102 +96,113 @@ fun CustomerLedgerScreen(
             (customer.company?.contains(query, ignoreCase = true) == true)
     }
 
-    Column(
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text("Buku Besar Customer", style = MaterialTheme.typography.headlineMedium)
-        Text(
-            "Cari customer, pilih dari dropdown, lalu review semua invoice, item produk, histori pembayaran, dan posisi hutang per faktur.",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        item {
+            Text("Buku Besar Customer", style = MaterialTheme.typography.headlineMedium)
+        }
 
-        ExposedDropdownMenuBox(
-            expanded = expanded,
-            onExpandedChange = { expanded = !expanded }
-        ) {
-            OutlinedTextField(
-                value = query,
-                onValueChange = {
-                    query = it
-                    expanded = true
-                },
-                label = { Text("Cari customer / company / kode") },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                modifier = Modifier.fillMaxWidth().menuAnchor()
+        item {
+            Text(
+                "Cari customer, pilih dari dropdown, lalu review semua invoice, item produk, histori pembayaran, dan posisi hutang per faktur.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+        }
 
-            ExposedDropdownMenu(
+        item {
+            ExposedDropdownMenuBox(
                 expanded = expanded,
-                onDismissRequest = { expanded = false }
+                onExpandedChange = { expanded = !expanded }
             ) {
-                filteredCustomers.take(12).forEach { customer ->
-                    DropdownMenuItem(
-                        text = {
-                            Column {
-                                Text(customer.name, fontWeight = FontWeight.SemiBold)
-                                Text(
-                                    listOfNotNull(customer.code, customer.company).joinToString(" • "),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = {
+                        query = it
+                        expanded = true
+                    },
+                    label = { Text("Cari customer / company / kode") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                    modifier = Modifier.fillMaxWidth().menuAnchor()
+                )
+
+                ExposedDropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }
+                ) {
+                    filteredCustomers.take(12).forEach { customer ->
+                        DropdownMenuItem(
+                            text = {
+                                Column {
+                                    Text(customer.name, fontWeight = FontWeight.SemiBold)
+                                    Text(
+                                        listOfNotNull(customer.code, customer.company).joinToString(" • "),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            },
+                            onClick = {
+                                selectedCustomer = customer
+                                query = customer.name
+                                expanded = false
                             }
-                        },
-                        onClick = {
-                            selectedCustomer = customer
-                            query = customer.name
-                            expanded = false
-                        }
-                    )
+                        )
+                    }
                 }
             }
         }
 
         when {
             loading -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 48.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
                 }
             }
 
             ledgerReport == null -> {
-                Surface(
-                    color = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 4.dp,
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(24.dp)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(28.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                item {
+                    Surface(
+                        color = MaterialTheme.colorScheme.surface,
+                        tonalElevation = 4.dp,
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(24.dp)
                     ) {
-                        Text("Belum ada customer yang dipilih.", style = MaterialTheme.typography.titleLarge)
-                        Text("Gunakan search di atas untuk memilih customer dan memunculkan ledger lengkap.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(28.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Text("Belum ada customer yang dipilih.", style = MaterialTheme.typography.titleLarge)
+                            Text("Gunakan search di atas untuk memilih customer dan memunculkan ledger lengkap.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                     }
                 }
             }
 
             else -> {
                 val report = ledgerReport!!
-                LedgerSummary(report)
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
-                    items(report.invoices) { entry ->
-                        val isExpanded = expandedInvoices[entry.invoice.id] ?: false
-                        InvoiceLedgerCard(
-                            entry = entry,
-                            expanded = isExpanded,
-                            onToggle = { expandedInvoices[entry.invoice.id] = !isExpanded }
-                        )
-                    }
+                item {
+                    LedgerSummary(report)
+                }
+                items(report.invoices, key = { it.invoice.id }) { entry ->
+                    val isExpanded = expandedInvoices[entry.invoice.id] ?: false
+                    InvoiceLedgerCard(
+                        entry = entry,
+                        expanded = isExpanded,
+                        onToggle = { expandedInvoices[entry.invoice.id] = !isExpanded }
+                    )
                 }
             }
         }

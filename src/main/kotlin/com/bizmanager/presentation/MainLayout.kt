@@ -1,7 +1,12 @@
 package com.bizmanager.presentation
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.hoverable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,6 +28,8 @@ import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Inventory
+import androidx.compose.material.icons.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Receipt
@@ -30,12 +37,19 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.bizmanager.presentation.navigation.NavigationState
@@ -47,6 +61,9 @@ fun MainLayout(
     onNavigate: (Screen) -> Unit,
     content: @Composable () -> Unit
 ) {
+    var sidebarCollapsed by rememberSaveable { mutableStateOf(false) }
+    val sidebarWidth by animateDpAsState(if (sidebarCollapsed) 96.dp else 280.dp)
+
     Row(
         modifier = Modifier
             .fillMaxSize()
@@ -56,8 +73,10 @@ fun MainLayout(
     ) {
         Sidebar(
             currentScreen = navigationState.currentScreen,
+            collapsed = sidebarCollapsed,
+            onToggleCollapse = { sidebarCollapsed = !sidebarCollapsed },
             onNavigate = onNavigate,
-            modifier = Modifier.width(280.dp).fillMaxHeight()
+            modifier = Modifier.width(sidebarWidth).fillMaxHeight()
         )
         Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
             content()
@@ -68,6 +87,8 @@ fun MainLayout(
 @Composable
 private fun Sidebar(
     currentScreen: Screen,
+    collapsed: Boolean,
+    onToggleCollapse: () -> Unit,
     onNavigate: (Screen) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -88,57 +109,91 @@ private fun Sidebar(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary),
                 shape = RoundedCornerShape(24.dp)
             ) {
-                Column(modifier = Modifier.fillMaxWidth().padding(18.dp)) {
-                    Text(
-                        text = "BizManager",
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = "Workspace untuk invoice, piutang, dan insight keuangan harian.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.88f)
-                    )
+                if (collapsed) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 14.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Text(
+                            text = "BM",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                        IconButton(onClick = onToggleCollapse) {
+                            Icon(
+                                imageVector = Icons.Default.KeyboardArrowRight,
+                                contentDescription = "Buka sidebar",
+                                tint = MaterialTheme.colorScheme.onPrimary
+                            )
+                        }
+                    }
+                } else {
+                    Column(modifier = Modifier.fillMaxWidth().padding(18.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "BizManager",
+                                style = MaterialTheme.typography.headlineSmall,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                            IconButton(onClick = onToggleCollapse) {
+                                Icon(
+                                    imageVector = Icons.Default.KeyboardArrowLeft,
+                                    contentDescription = "Minimize sidebar",
+                                    tint = MaterialTheme.colorScheme.onPrimary
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "Workspace untuk invoice, piutang, dan insight keuangan harian.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.88f)
+                        )
+                    }
                 }
             }
 
             Spacer(modifier = Modifier.height(22.dp))
-            SidebarSection("Operasional")
-            SidebarItem("Dashboard", Icons.Default.Dashboard, currentScreen == Screen.Dashboard) {
+            if (!collapsed) SidebarSection("Operasional")
+            SidebarItem("Dashboard", Icons.Default.Dashboard, currentScreen == Screen.Dashboard, collapsed) {
                 onNavigate(Screen.Dashboard)
             }
-            SidebarItem("Customers", Icons.Default.People, currentScreen in listOf(Screen.CustomerList, Screen.CustomerForm, Screen.CustomerDetail)) {
+            SidebarItem("Customers", Icons.Default.People, currentScreen in listOf(Screen.CustomerList, Screen.CustomerForm, Screen.CustomerDetail), collapsed) {
                 onNavigate(Screen.CustomerList)
             }
-            SidebarItem("Products", Icons.Default.Inventory, currentScreen in listOf(Screen.ProductList, Screen.ProductForm, Screen.ProductDetail)) {
+            SidebarItem("Products", Icons.Default.Inventory, currentScreen in listOf(Screen.ProductList, Screen.ProductForm, Screen.ProductDetail), collapsed) {
                 onNavigate(Screen.ProductList)
             }
-            SidebarItem("Invoices", Icons.Default.Receipt, currentScreen in listOf(Screen.InvoiceList, Screen.InvoiceForm, Screen.InvoiceDetail)) {
+            SidebarItem("Invoices", Icons.Default.Receipt, currentScreen in listOf(Screen.InvoiceList, Screen.InvoiceForm, Screen.InvoiceDetail), collapsed) {
                 onNavigate(Screen.InvoiceList)
             }
-            SidebarItem("Payments", Icons.Default.Payments, currentScreen in listOf(Screen.PaymentList, Screen.PaymentForm)) {
+            SidebarItem("Payments", Icons.Default.Payments, currentScreen in listOf(Screen.PaymentList, Screen.PaymentForm), collapsed) {
                 onNavigate(Screen.PaymentList)
             }
-            SidebarItem("Piutang", Icons.Default.AccountBalanceWallet, currentScreen == Screen.ReceivableList) {
+            SidebarItem("Piutang", Icons.Default.AccountBalanceWallet, currentScreen == Screen.ReceivableList, collapsed) {
                 onNavigate(Screen.ReceivableList)
             }
-            SidebarItem("Buku Besar Customer", Icons.AutoMirrored.Filled.MenuBook, currentScreen == Screen.CustomerLedger) {
+            SidebarItem("Buku Besar Customer", Icons.AutoMirrored.Filled.MenuBook, currentScreen == Screen.CustomerLedger, collapsed) {
                 onNavigate(Screen.CustomerLedger)
             }
 
             Spacer(modifier = Modifier.height(18.dp))
-            SidebarSection("Insight & Sistem")
-            SidebarItem("Reports", Icons.Default.Receipt, currentScreen == Screen.ReportPage) {
+            if (!collapsed) SidebarSection("Insight & Sistem")
+            SidebarItem("Reports", Icons.Default.Receipt, currentScreen == Screen.ReportPage, collapsed) {
                 onNavigate(Screen.ReportPage)
             }
-            SidebarItem("Settings", Icons.Default.Settings, currentScreen == Screen.SettingsPage) {
+            SidebarItem("Settings", Icons.Default.Settings, currentScreen == Screen.SettingsPage, collapsed) {
                 onNavigate(Screen.SettingsPage)
             }
-            SidebarItem("Backup & Restore", Icons.Default.Backup, currentScreen == Screen.BackupRestore) {
+            SidebarItem("Backup & Restore", Icons.Default.Backup, currentScreen == Screen.BackupRestore, collapsed) {
                 onNavigate(Screen.BackupRestore)
             }
-            SidebarItem("Tentang Aplikasi", Icons.Default.Info, currentScreen == Screen.AboutPage) {
+            SidebarItem("Tentang Aplikasi", Icons.Default.Info, currentScreen == Screen.AboutPage, collapsed) {
                 onNavigate(Screen.AboutPage)
             }
         }
@@ -160,38 +215,101 @@ private fun SidebarItem(
     title: String,
     icon: ImageVector,
     isSelected: Boolean,
+    collapsed: Boolean,
     onClick: () -> Unit
 ) {
-    val containerColor = if (isSelected) {
-        MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-    } else {
-        MaterialTheme.colorScheme.surface
-    }
-    val contentColor = if (isSelected) {
-        MaterialTheme.colorScheme.primary
-    } else {
-        MaterialTheme.colorScheme.onSurface
-    }
+    val interactionSource = remember { MutableInteractionSource() }
+    val isHovered by interactionSource.collectIsHoveredAsState()
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 3.dp)
-            .clickable(onClick = onClick)
-            .background(containerColor, RoundedCornerShape(18.dp))
-            .padding(horizontal = 14.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = title,
-            tint = contentColor
-        )
-        Text(
-            text = title,
-            style = MaterialTheme.typography.bodyLarge,
-            color = contentColor
-        )
+    val targetContainerColor = when {
+        isSelected && isHovered -> MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+        isSelected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.13f)
+        isHovered -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f)
+        else -> MaterialTheme.colorScheme.surface
+    }
+    val targetContentColor = when {
+        isSelected -> MaterialTheme.colorScheme.primary
+        isHovered -> MaterialTheme.colorScheme.onSurface
+        else -> MaterialTheme.colorScheme.onSurface
+    }
+    val targetIndicatorColor = when {
+        isSelected -> MaterialTheme.colorScheme.primary
+        isHovered -> MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
+        else -> MaterialTheme.colorScheme.surface
+    }
+    val horizontalPadding by animateDpAsState(
+        when {
+            collapsed -> 12.dp
+            isHovered && !isSelected -> 16.dp
+            else -> 14.dp
+        }
+    )
+    val containerColor by animateColorAsState(targetContainerColor)
+    val contentColor by animateColorAsState(targetContentColor)
+    val indicatorColor by animateColorAsState(targetIndicatorColor)
+
+    if (collapsed) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 3.dp)
+                .clip(RoundedCornerShape(18.dp))
+                .hoverable(interactionSource = interactionSource)
+                .clickable(
+                    interactionSource = interactionSource,
+                    indication = null,
+                    onClick = onClick
+                )
+                .background(containerColor, RoundedCornerShape(18.dp))
+                .padding(horizontal = horizontalPadding, vertical = 12.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .width(4.dp)
+                    .height(24.dp)
+                    .background(indicatorColor, RoundedCornerShape(999.dp))
+            )
+            Icon(
+                imageVector = icon,
+                contentDescription = title,
+                tint = contentColor
+            )
+        }
+    } else {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 3.dp)
+                .clip(RoundedCornerShape(18.dp))
+                .hoverable(interactionSource = interactionSource)
+                .clickable(
+                    interactionSource = interactionSource,
+                    indication = null,
+                    onClick = onClick
+                )
+                .background(containerColor, RoundedCornerShape(18.dp))
+                .padding(horizontal = horizontalPadding, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .width(4.dp)
+                    .height(24.dp)
+                    .background(indicatorColor, RoundedCornerShape(999.dp))
+            )
+            Icon(
+                imageVector = icon,
+                contentDescription = title,
+                tint = contentColor
+            )
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                color = contentColor
+            )
+        }
     }
 }

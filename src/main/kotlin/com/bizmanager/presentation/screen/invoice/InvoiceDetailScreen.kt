@@ -105,15 +105,26 @@ fun InvoiceDetailScreen(
         Divider()
         
         LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f)) {
-            items(items) { itm ->
-                Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                    Column(modifier = Modifier.weight(2f)) {
-                        Text(itm.productNameSnapshot, style = MaterialTheme.typography.subtitle1)
-                        Text("${itm.qty} x ${itm.sellPrice.toCurrencyLabel()} (Diskon: ${itm.discount.toCurrencyLabel()})", style = MaterialTheme.typography.caption)
-                    }
-                    Text(itm.subtotal.subtract(itm.discount).toCurrencyLabel(), modifier = Modifier.weight(1f), style = MaterialTheme.typography.subtitle1, textAlign = androidx.compose.ui.text.style.TextAlign.End)
+            if (items.isEmpty()) {
+                item {
+                    Text(
+                        "Faktur input manual. Tidak ada rincian produk.",
+                        style = MaterialTheme.typography.body2,
+                        color = MaterialTheme.colors.onSurface.copy(alpha=0.6f),
+                        modifier = Modifier.padding(vertical = 16.dp)
+                    )
                 }
-                Divider()
+            } else {
+                items(items) { itm ->
+                    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                        Column(modifier = Modifier.weight(2f)) {
+                            Text(itm.productNameSnapshot, style = MaterialTheme.typography.subtitle1)
+                            Text("${itm.qty} x ${itm.sellPrice.toCurrencyLabel()} (Diskon: ${itm.discount.toCurrencyLabel()})", style = MaterialTheme.typography.caption)
+                        }
+                        Text(itm.subtotal.subtract(itm.discount).toCurrencyLabel(), modifier = Modifier.weight(1f), style = MaterialTheme.typography.subtitle1, textAlign = androidx.compose.ui.text.style.TextAlign.End)
+                    }
+                    Divider()
+                }
             }
             
             item {

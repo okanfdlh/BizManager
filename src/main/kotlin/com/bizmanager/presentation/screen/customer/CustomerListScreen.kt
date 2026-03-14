@@ -13,6 +13,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.bizmanager.data.repository.CustomerRepository
 import com.bizmanager.domain.model.Customer
+import com.bizmanager.presentation.ui.PaginationControl
+import com.bizmanager.presentation.ui.paginateList
+import kotlin.math.ceil
 
 @Composable
 fun CustomerListScreen(
@@ -25,8 +28,51 @@ fun CustomerListScreen(
     var customerToDelete by remember { mutableStateOf<Customer?>(null) }
     var refreshTrigger by remember { mutableStateOf(0) }
 
+    // Filter & Pagination States
+    var searchQuery by remember { mutableStateOf("") }
+    var statusFilter by remember { mutableStateOf("Semua") } // "Semua", "Aktif", "Nonaktif"
+    
+    var currentPage by remember { mutableStateOf(1) }
+    var pageSize by remember { mutableStateOf(20) }
+
     LaunchedEffect(refreshTrigger) {
-        customers = customerRepository.findAll(includeInactive = false)
+        customers = customerRepository.findAll(includeInactive = true)
+    }
+
+    // Advanced in-memory filtering
+    val filteredCustomers by remember(customers, searchQuery, statusFilter) {
+        derivedStateOf {
+            customers.filter { c ->
+                val matchesSearch = c.name.contains(searchQuery, ignoreCase = true) ||
+                        c.code.contains(searchQuery, ignoreCase = true) ||
+                        (c.phone?.contains(searchQuery, ignoreCase = true) == true) ||
+                        (c.company?.contains(searchQuery, ignoreCase = true) == true)
+                
+                val matchesStatus = when (statusFilter) {
+                    "Aktif" -> c.isActive
+                    "Nonaktif" -> !c.isActive
+                    else -> true
+                }
+                
+                matchesSearch && matchesStatus
+            }
+        }
+    }
+
+    // Pagination Logic
+    val totalElements = filteredCustomers.size
+    val totalPages = if (totalElements == 0) 1 else ceil(totalElements.toDouble() / pageSize).toInt()
+    
+    // Auto-adjust page if out of bounds after filtering
+    LaunchedEffect(totalPages) {
+        if (currentPage > totalPages) currentPage = totalPages
+        if (currentPage < 1) currentPage = 1
+    }
+
+    val paginatedCustomers by remember(filteredCustomers, currentPage, pageSize) {
+        derivedStateOf {
+            paginateList(filteredCustomers, currentPage, pageSize)
+        }
     }
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
@@ -44,6 +90,36 @@ fun CustomerListScreen(
         }
         
         Spacer(Modifier.height(16.dp))
+        
+        // Filter Controls
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it; currentPage = 1 },
+                label = { Text("Cari (Nama, Kode, Telp)") },
+                modifier = Modifier.weight(1f)
+            )
+            
+            var expanded by remember { mutableStateOf(false) }
+            Box(modifier = Modifier.width(200.dp)) {
+                OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth().height(56.dp)) {
+                    Text("Status: $statusFilter")
+                }
+                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                    listOf("Semua", "Aktif", "Nonaktif").forEach { opt ->
+                        DropdownMenuItem(onClick = {
+                            statusFilter = opt
+                            currentPage = 1
+                            expanded = false
+                        }) {
+                            Text(opt)
+                        }
+                    }
+                }
+            }
+        }
+        
+        Spacer(Modifier.height(16.dp))
 
         // Simple table header
         Row(modifier = Modifier.fillMaxWidth().padding(8.dp)) {
@@ -56,7 +132,7 @@ fun CustomerListScreen(
         Divider()
 
         LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f)) {
-            items(customers) { c ->
+            items(paginatedCustomers) { c ->
                 Row(
                     modifier = Modifier.fillMaxWidth().clickable { onNavigateToDetail(c.id) }.padding(8.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -80,6 +156,16 @@ fun CustomerListScreen(
                 Divider()
             }
         }
+
+        Divider()
+        PaginationControl(
+            currentPage = currentPage,
+            totalPages = totalPages,
+            pageSize = pageSize,
+            totalElements = totalElements,
+            onPageChanged = { currentPage = it },
+            onPageSizeChanged = { pageSize = it; currentPage = 1 }
+        )
 
         if (showDeleteDialog && customerToDelete != null) {
             AlertDialog(

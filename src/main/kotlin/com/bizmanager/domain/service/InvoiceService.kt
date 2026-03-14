@@ -23,7 +23,8 @@ class InvoiceService(
         isDraft: Boolean,
         itemsInput: List<InvoiceItemInput>,
         customDate: LocalDateTime? = null,
-        customInvoiceNumber: String? = null
+        customInvoiceNumber: String? = null,
+        manualTotal: BigDecimal? = null
     ): Invoice {
         val today = customDate ?: LocalDateTime.now()
         
@@ -62,7 +63,7 @@ class InvoiceService(
             processedItems.add(snapshotItem)
         }
 
-        val totals = InvoiceCalculator.calculateInvoiceTotals(processedItems, additionalCost)
+        val totals = InvoiceCalculator.calculateInvoiceTotals(processedItems, additionalCost, manualTotal)
         val status = if (isDraft) InvoiceStatus.Draft else InvoiceStatus.Posted
         
         val newInvoice = Invoice(
@@ -96,7 +97,8 @@ class InvoiceService(
         additionalCost: BigDecimal,
         notes: String?,
         postInvoice: Boolean,
-        itemsInput: List<InvoiceItemInput>
+        itemsInput: List<InvoiceItemInput>,
+        manualTotal: BigDecimal? = null
     ): Invoice {
         val existing = invoiceRepository.findById(invoiceId)
             ?: throw IllegalArgumentException("Invoice not found")
@@ -136,7 +138,7 @@ class InvoiceService(
             processedItems.add(snapshotItem)
         }
 
-        val totals = InvoiceCalculator.calculateInvoiceTotals(processedItems, additionalCost)
+        val totals = InvoiceCalculator.calculateInvoiceTotals(processedItems, additionalCost, manualTotal)
         val status = if (postInvoice) InvoiceStatus.Posted else InvoiceStatus.Draft
 
         val updatedInvoice = existing.copy(

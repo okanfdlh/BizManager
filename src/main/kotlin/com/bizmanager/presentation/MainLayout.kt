@@ -175,8 +175,11 @@ private fun Sidebar(
             SidebarItem("Payments", Icons.Default.Payments, currentScreen in listOf(Screen.PaymentList, Screen.PaymentForm), collapsed) {
                 onNavigate(Screen.PaymentList)
             }
-            SidebarItem("Piutang", Icons.Default.AccountBalanceWallet, currentScreen == Screen.ReceivableList, collapsed) {
+            SidebarItem("Piutang (Aging)", Icons.Default.AccountBalanceWallet, currentScreen == Screen.ReceivableList, collapsed) {
                 onNavigate(Screen.ReceivableList)
+            }
+            SidebarItem("Rekap Piutang", Icons.Default.AccountBalanceWallet, currentScreen == Screen.CustomerReceivableList, collapsed) {
+                onNavigate(Screen.CustomerReceivableList)
             }
             SidebarItem("Buku Besar Customer", Icons.AutoMirrored.Filled.MenuBook, currentScreen == Screen.CustomerLedger, collapsed) {
                 onNavigate(Screen.CustomerLedger)

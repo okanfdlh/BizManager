@@ -16,8 +16,12 @@ import com.bizmanager.data.repository.InvoiceRepository
 import com.bizmanager.domain.model.Customer
 import com.bizmanager.domain.model.Invoice
 import com.bizmanager.domain.model.InvoiceStatus
+import com.bizmanager.domain.model.InvoiceStatus
+import com.bizmanager.presentation.ui.PaginationControl
+import com.bizmanager.presentation.ui.paginateList
 import com.bizmanager.presentation.ui.toCurrencyLabel
 import java.math.BigDecimal
+import kotlin.math.ceil
 
 @Composable
 fun InvoiceListScreen(
@@ -32,11 +36,54 @@ fun InvoiceListScreen(
     var invoiceToDelete by remember { mutableStateOf<Invoice?>(null) }
     var refreshTrigger by remember { mutableStateOf(0) }
 
+    // Filter & Pagination States
+    var searchQuery by remember { mutableStateOf("") }
+    var statusFilter by remember { mutableStateOf("Semua") } // "Semua", "Draft", "Posted", "Cancelled"
+    
+    var currentPage by remember { mutableStateOf(1) }
+    var pageSize by remember { mutableStateOf(20) }
+
     LaunchedEffect(refreshTrigger) {
         val inv = invoiceRepository.findAll()
         val cust = customerRepository.findAll(includeInactive = true).associateBy({ it.id }, { it.name })
         invoices = inv
         customers = cust
+    }
+
+    // Advanced in-memory filtering
+    val filteredInvoices by remember(invoices, customers, searchQuery, statusFilter) {
+        derivedStateOf {
+            invoices.filter { inv ->
+                val customerName = customers[inv.customerId] ?: ""
+                val matchesSearch = inv.invoiceNumber.contains(searchQuery, ignoreCase = true) ||
+                        customerName.contains(searchQuery, ignoreCase = true)
+                
+                val matchesStatus = when (statusFilter) {
+                    "Draft" -> inv.invoiceStatus == InvoiceStatus.Draft
+                    "Posted" -> inv.invoiceStatus == InvoiceStatus.Posted
+                    "Cancelled" -> inv.invoiceStatus == InvoiceStatus.Cancelled
+                    else -> true
+                }
+                
+                matchesSearch && matchesStatus
+            }
+        }
+    }
+
+    // Pagination Logic
+    val totalElements = filteredInvoices.size
+    val totalPages = if (totalElements == 0) 1 else ceil(totalElements.toDouble() / pageSize).toInt()
+    
+    // Auto-adjust page if out of bounds after filtering
+    LaunchedEffect(totalPages) {
+        if (currentPage > totalPages) currentPage = totalPages
+        if (currentPage < 1) currentPage = 1
+    }
+
+    val paginatedInvoices by remember(filteredInvoices, currentPage, pageSize) {
+        derivedStateOf {
+            paginateList(filteredInvoices, currentPage, pageSize)
+        }
     }
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
@@ -48,6 +95,36 @@ fun InvoiceListScreen(
                 Text("Buat Faktur")
             }
         }
+        Spacer(Modifier.height(16.dp))
+
+        // Filter Controls
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it; currentPage = 1 },
+                label = { Text("Cari (No Faktur, Nama Customer)") },
+                modifier = Modifier.weight(1f)
+            )
+            
+            var expanded by remember { mutableStateOf(false) }
+            Box(modifier = Modifier.width(200.dp)) {
+                OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth().height(56.dp)) {
+                    Text("Status: $statusFilter")
+                }
+                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                    listOf("Semua", "Draft", "Posted", "Cancelled").forEach { opt ->
+                        DropdownMenuItem(onClick = {
+                            statusFilter = opt
+                            currentPage = 1
+                            expanded = false
+                        }) {
+                            Text(opt)
+                        }
+                    }
+                }
+            }
+        }
+        
         Spacer(Modifier.height(16.dp))
 
         Row(modifier = Modifier.fillMaxWidth().padding(8.dp)) {
@@ -63,7 +140,7 @@ fun InvoiceListScreen(
         Divider()
 
         LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f)) {
-            items(invoices) { inv ->
+            items(paginatedInvoices) { inv ->
                 Row(
                     modifier = Modifier.fillMaxWidth().clickable { onNavigateToDetail(inv.id) }.padding(8.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -101,6 +178,16 @@ fun InvoiceListScreen(
                 Divider()
             }
         }
+        
+        Divider()
+        PaginationControl(
+            currentPage = currentPage,
+            totalPages = totalPages,
+            pageSize = pageSize,
+            totalElements = totalElements,
+            onPageChanged = { currentPage = it },
+            onPageSizeChanged = { pageSize = it; currentPage = 1 }
+        )
         
         if (showDeleteDialog && invoiceToDelete != null) {
             AlertDialog(

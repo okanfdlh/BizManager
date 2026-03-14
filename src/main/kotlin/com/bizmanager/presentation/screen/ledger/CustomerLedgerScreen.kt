@@ -56,6 +56,7 @@ import com.bizmanager.presentation.ui.toDateTimeLabel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
+import com.bizmanager.domain.model.Invoice
 import com.bizmanager.domain.service.InvoiceService
 import com.bizmanager.domain.service.PaymentService
 import com.bizmanager.data.repository.ProductRepository
@@ -73,6 +74,7 @@ import androidx.compose.foundation.verticalScroll
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun CustomerLedgerScreen(
+    initialCustomerId: Int?,
     customerRepository: CustomerRepository,
     customerLedgerService: CustomerLedgerService,
     invoiceService: InvoiceService,
@@ -88,12 +90,17 @@ fun CustomerLedgerScreen(
     val expandedInvoices = remember { mutableStateMapOf<Int, Boolean>() }
     
     var showQuickFakturDialog by remember { mutableStateOf(false) }
+    var showQuickPaymentDialog by remember { mutableStateOf(false) }
     var productsList by remember { mutableStateOf<List<Product>>(emptyList()) }
     var loadTrigger by remember { mutableStateOf(0) }
 
     LaunchedEffect(Unit) {
         customers = withContext(Dispatchers.IO) {
             customerRepository.findAll(includeInactive = true)
+        }
+        if (initialCustomerId != null) {
+            selectedCustomer = customers.find { it.id == initialCustomerId }
+            selectedCustomer?.let { query = it.name }
         }
         productsList = withContext(Dispatchers.IO) {
             productRepository.findAll(includeInactive = false)
@@ -158,7 +165,7 @@ fun CustomerLedgerScreen(
                     expanded = expanded,
                     onDismissRequest = { expanded = false }
                 ) {
-                    filteredCustomers.take(12).forEach { customer ->
+                    filteredCustomers.forEach { customer ->
                         DropdownMenuItem(
                             text = {
                                 Column {
@@ -218,7 +225,11 @@ fun CustomerLedgerScreen(
             else -> {
                 val report = ledgerReport!!
                 item {
-                    LedgerSummary(report) { showQuickFakturDialog = true }
+                    LedgerSummary(
+                        report = report,
+                        onQuickInput = { showQuickFakturDialog = true },
+                        onQuickPayment = { showQuickPaymentDialog = true }
+                    )
                 }
                 items(report.invoices, key = { it.invoice.id }) { entry ->
                     val isExpanded = expandedInvoices[entry.invoice.id] ?: false
@@ -237,17 +248,18 @@ fun CustomerLedgerScreen(
             customer = selectedCustomer!!,
             products = productsList,
             onDismiss = { showQuickFakturDialog = false },
-            onSubmit = { tanggal, noFaktur, notes, productId, qty, diskon, additionalCost, paid, isPosted, paymentMethod ->
+            onSubmit = { tanggal, noFaktur, notes, productId, qty, diskon, manualTotal, paid, isPosted, paymentMethod ->
                 try {
                     val inv = invoiceService.createInvoice(
                         customerId = selectedCustomer!!.id,
                         dueDate = tanggal.plusDays(30),
-                        additionalCost = additionalCost,
+                        additionalCost = BigDecimal.ZERO,
                         notes = notes,
                         isDraft = !isPosted,
                         itemsInput = if (productId != null) listOf(InvoiceItemInput(productId, qty, diskon)) else emptyList(),
                         customDate = tanggal,
-                        customInvoiceNumber = noFaktur.ifBlank { null }
+                        customInvoiceNumber = noFaktur.ifBlank { null },
+                        manualTotal = manualTotal
                     )
                     
                     if (isPosted && paid > BigDecimal.ZERO) {
@@ -267,11 +279,35 @@ fun CustomerLedgerScreen(
             }
         )
     }
+
+    if (showQuickPaymentDialog && selectedCustomer != null && ledgerReport != null) {
+        val openInvoices = ledgerReport!!.invoices.filter { !it.isSettled }.map { it.invoice }
+        QuickPaymentDialog(
+            customer = selectedCustomer!!,
+            openInvoices = openInvoices,
+            onDismiss = { showQuickPaymentDialog = false },
+            onSubmit = { invoiceId, nominal, paymentMethod ->
+                try {
+                    paymentService.addPayment(
+                        invoiceId = invoiceId,
+                        amount = nominal,
+                        paymentMethod = paymentMethod,
+                        reference = null,
+                        notes = "Quick Payment"
+                    )
+                    showQuickPaymentDialog = false
+                    loadTrigger++
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        )
+    }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun LedgerSummary(report: CustomerLedgerReport, onQuickInput: () -> Unit) {
+private fun LedgerSummary(report: CustomerLedgerReport, onQuickInput: () -> Unit, onQuickPayment: () -> Unit) {
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
@@ -290,8 +326,16 @@ private fun LedgerSummary(report: CustomerLedgerReport, onQuickInput: () -> Unit
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                Button(onClick = onQuickInput) {
-                    Text("Quick Input Faktur")
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = onQuickInput) {
+                        Text("Quick Input Faktur")
+                    }
+                    Button(
+                        onClick = onQuickPayment,
+                        colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+                    ) {
+                        Text("Terima Pembayaran")
+                    }
                 }
             }
 
@@ -493,7 +537,7 @@ fun QuickFakturDialog(
         productId: Int?,
         qty: Int,
         diskon: BigDecimal,
-        additionalCost: BigDecimal,
+        manualTotal: BigDecimal,
         paid: BigDecimal,
         isPosted: Boolean,
         paymentMethod: String
@@ -631,10 +675,10 @@ fun QuickFakturDialog(
                 val dt = try { LocalDate.parse(dateStr).atTime(LocalTime.now()) } catch(e: Exception) { LocalDateTime.now() }
                 val qty = qtyStr.toIntOrNull() ?: 1
                 val diskon = try { BigDecimal(diskonStr) } catch(e: Exception) { BigDecimal.ZERO }
-                val addCost = try { BigDecimal(manualTotalStr) } catch(e: Exception) { BigDecimal.ZERO }
+                val manualTotal = try { BigDecimal(manualTotalStr) } catch(e: Exception) { BigDecimal.ZERO }
                 val paid = try { BigDecimal(paidStr) } catch(e: Exception) { BigDecimal.ZERO }
                 
-                onSubmit(dt, noFaktur, notes, selectedProductId, qty, diskon, addCost, paid, isPosted, paymentMethod)
+                onSubmit(dt, noFaktur, notes, selectedProductId, qty, diskon, manualTotal, paid, isPosted, paymentMethod)
             }) {
                 Text("Simpan")
             }
@@ -645,4 +689,104 @@ fun QuickFakturDialog(
             }
         }
     )
+    )
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun QuickPaymentDialog(
+    customer: Customer,
+    openInvoices: List<Invoice>,
+    onDismiss: () -> Unit,
+    onSubmit: (invoiceId: Int, nominal: BigDecimal, paymentMethod: String) -> Unit
+) {
+    var selectedInvoiceId by remember { mutableStateOf<Int?>(openInvoices.firstOrNull()?.id) }
+    var invDropdownExpanded by remember { mutableStateOf(false) }
+    
+    var nominalStr by remember { mutableStateOf("") }
+    var paymentMethod by remember { mutableStateOf("Transfer Bank") }
+
+    LaunchedEffect(selectedInvoiceId) {
+        val inv = openInvoices.find { it.id == selectedInvoiceId }
+        if (inv != null && nominalStr.isBlank()) {
+            nominalStr = inv.balanceDue.toPlainString()
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Quick Terima Pembayaran - ${customer.name}") },
+        text = {
+            if (openInvoices.isEmpty()) {
+                Text("Tidak ada faktur yang belum lunas (outstanding) untuk customer ini.")
+            } else {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    ExposedDropdownMenuBox(
+                        expanded = invDropdownExpanded,
+                        onExpandedChange = { invDropdownExpanded = !invDropdownExpanded }
+                    ) {
+                        val invName = openInvoices.find { it.id == selectedInvoiceId }?.let { "${it.invoiceNumber} (Sisa: ${it.balanceDue.toCurrencyLabel()})" } ?: "Pilih Faktur"
+                        OutlinedTextField(
+                            value = invName,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Pilih Faktur") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = invDropdownExpanded) },
+                            modifier = Modifier.fillMaxWidth().menuAnchor()
+                        )
+                        ExposedDropdownMenu(
+                            expanded = invDropdownExpanded,
+                            onDismissRequest = { invDropdownExpanded = false },
+                            modifier = Modifier.heightIn(max = 250.dp)
+                        ) {
+                            openInvoices.forEach { inv ->
+                                DropdownMenuItem(
+                                    text = { Text("${inv.invoiceNumber} - Sisa: ${inv.balanceDue.toCurrencyLabel()}") },
+                                    onClick = { 
+                                        selectedInvoiceId = inv.id
+                                        nominalStr = inv.balanceDue.toPlainString()
+                                        invDropdownExpanded = false 
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    OutlinedTextField(
+                        value = nominalStr,
+                        onValueChange = { nominalStr = it },
+                        label = { Text("Nominal Dibayar (Rp)") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = paymentMethod,
+                        onValueChange = { paymentMethod = it },
+                        label = { Text("Metode Pembayaran") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            if (openInvoices.isNotEmpty()) {
+                Button(onClick = {
+                    val nominal = try { BigDecimal(nominalStr) } catch(e: Exception) { BigDecimal.ZERO }
+                    if (selectedInvoiceId != null && nominal > BigDecimal.ZERO) {
+                        onSubmit(selectedInvoiceId!!, nominal, paymentMethod)
+                    }
+                }) {
+                    Text("Simpan Pembayaran")
+                }
+            }
+        },
+        dismissButton = {
+            androidx.compose.material3.TextButton(onClick = onDismiss) {
+                Text(if (openInvoices.isEmpty()) "Tutup" else "Batal")
+            }
+        }
+    )
+}
+

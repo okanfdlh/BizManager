@@ -14,6 +14,7 @@ enum class Screen {
     PaymentList,
     PaymentForm,
     ReceivableList,
+    CustomerReceivableList,
     CustomerLedger,
     ReportPage,
     SettingsPage,

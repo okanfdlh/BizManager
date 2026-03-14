@@ -20,7 +20,8 @@ object InvoiceCalculator {
 
     fun calculateInvoiceTotals(
         items: List<InvoiceItem>,
-        additionalCost: BigDecimal
+        additionalCost: BigDecimal,
+        manualTotal: BigDecimal? = null
     ): InvoiceTotals {
         var subtotal = BigDecimal.ZERO
         var totalCost = BigDecimal.ZERO
@@ -30,6 +31,10 @@ object InvoiceCalculator {
             subtotal = subtotal.add(item.subtotal)
             totalCost = totalCost.add(item.totalCost)
             totalDiscount = totalDiscount.add(item.discount)
+        }
+
+        if (items.isEmpty() && manualTotal != null) {
+            subtotal = manualTotal
         }
 
         val grossProfit = subtotal.subtract(totalCost).subtract(totalDiscount)

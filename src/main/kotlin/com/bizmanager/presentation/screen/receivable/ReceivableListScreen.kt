@@ -12,8 +12,11 @@ import com.bizmanager.data.repository.CustomerRepository
 import com.bizmanager.data.repository.InvoiceRepository
 import com.bizmanager.domain.model.Invoice
 import com.bizmanager.domain.service.AgingCalculator
+import com.bizmanager.presentation.ui.PaginationControl
+import com.bizmanager.presentation.ui.paginateList
 import com.bizmanager.presentation.ui.toCurrencyLabel
 import java.math.BigDecimal
+import kotlin.math.ceil
 
 @Composable
 fun ReceivableListScreen(
@@ -27,6 +30,13 @@ fun ReceivableListScreen(
     var total0To30 by remember { mutableStateOf(BigDecimal.ZERO) }
     var total31To90 by remember { mutableStateOf(BigDecimal.ZERO) }
     var totalMore90 by remember { mutableStateOf(BigDecimal.ZERO) }
+
+    // Filter & Pagination States
+    var searchQuery by remember { mutableStateOf("") }
+    var agingFilter by remember { mutableStateOf("Semua") }
+    
+    var currentPage by remember { mutableStateOf(1) }
+    var pageSize by remember { mutableStateOf(20) }
 
     LaunchedEffect(Unit) {
         val cust = customerRepository.findAll(includeInactive = true).associateBy({it.id}, {it.name})
@@ -55,6 +65,45 @@ fun ReceivableListScreen(
         total0To30 = tot0_30
         total31To90 = tot31_90
         totalMore90 = totM90
+    }
+
+    // Advanced in-memory filtering
+    val filteredInvoices by remember(overdueInvoices, customerMap, searchQuery, agingFilter) {
+        derivedStateOf {
+            overdueInvoices.filter { inv ->
+                val customerName = customerMap[inv.customerId] ?: ""
+                val matchesSearch = inv.invoiceNumber.contains(searchQuery, ignoreCase = true) ||
+                        customerName.contains(searchQuery, ignoreCase = true)
+                
+                val aging = AgingCalculator.calculateAging(inv.dueDate, inv.balanceDue)?.name
+                val matchesAging = when (agingFilter) {
+                    "Semua" -> true
+                    "Current" -> aging == "Current"
+                    "1-30 Hari" -> aging == "Overdue0To30"
+                    "31-90 Hari" -> aging == "Overdue31To90"
+                    "> 90 Hari" -> aging == "OverdueMoreThan90"
+                    else -> true
+                }
+                
+                matchesSearch && matchesAging
+            }
+        }
+    }
+
+    // Pagination Logic
+    val totalElements = filteredInvoices.size
+    val totalPages = if (totalElements == 0) 1 else ceil(totalElements.toDouble() / pageSize).toInt()
+    
+    // Auto-adjust page if out of bounds after filtering
+    LaunchedEffect(totalPages) {
+        if (currentPage > totalPages) currentPage = totalPages
+        if (currentPage < 1) currentPage = 1
+    }
+
+    val paginatedInvoices by remember(filteredInvoices, currentPage, pageSize) {
+        derivedStateOf {
+            paginateList(filteredInvoices, currentPage, pageSize)
+        }
     }
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
@@ -88,6 +137,36 @@ fun ReceivableListScreen(
             }
         }
         
+        Spacer(Modifier.height(16.dp))
+
+        // Filter Controls
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it; currentPage = 1 },
+                label = { Text("Cari (No Faktur, Nama Customer)") },
+                modifier = Modifier.weight(1f)
+            )
+            
+            var expanded by remember { mutableStateOf(false) }
+            Box(modifier = Modifier.width(200.dp)) {
+                OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth().height(56.dp)) {
+                    Text("Aging: $agingFilter")
+                }
+                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                    listOf("Semua", "Current", "1-30 Hari", "31-90 Hari", "> 90 Hari").forEach { opt ->
+                        DropdownMenuItem(onClick = {
+                            agingFilter = opt
+                            currentPage = 1
+                            expanded = false
+                        }) {
+                            Text(opt)
+                        }
+                    }
+                }
+            }
+        }
+        
         Spacer(Modifier.height(24.dp))
 
         Row(modifier = Modifier.fillMaxWidth().padding(8.dp)) {
@@ -100,7 +179,7 @@ fun ReceivableListScreen(
         Divider()
 
         LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f)) {
-            items(overdueInvoices) { inv ->
+            items(paginatedInvoices) { inv ->
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(8.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -125,5 +204,15 @@ fun ReceivableListScreen(
                 Divider()
             }
         }
+
+        Divider()
+        PaginationControl(
+            currentPage = currentPage,
+            totalPages = totalPages,
+            pageSize = pageSize,
+            totalElements = totalElements,
+            onPageChanged = { currentPage = it },
+            onPageSizeChanged = { pageSize = it; currentPage = 1 }
+        )
     }
 }

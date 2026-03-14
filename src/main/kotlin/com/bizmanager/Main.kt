@@ -83,7 +83,13 @@ fun App(
                 Screen.PaymentForm -> PaymentFormScreen(selectedId, invoiceRepository, paymentService, { navController.navigate(Screen.PaymentList) })
                 
                 Screen.ReceivableList -> ReceivableListScreen(invoiceRepository, customerRepository)
+                Screen.CustomerReceivableList -> com.bizmanager.presentation.screen.receivable.CustomerReceivableScreen(
+                    invoiceRepository = invoiceRepository,
+                    customerRepository = customerRepository,
+                    onNavigateToCustomerLedger = { id -> navController.navigate(Screen.CustomerLedger, id) }
+                )
                 Screen.CustomerLedger -> CustomerLedgerScreen(
+                    selectedId,
                     customerRepository, 
                     customerLedgerService,
                     invoiceService,

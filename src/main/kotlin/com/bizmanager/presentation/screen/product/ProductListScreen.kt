@@ -13,7 +13,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.bizmanager.data.repository.ProductRepository
 import com.bizmanager.domain.model.Product
+import com.bizmanager.presentation.ui.PaginationControl
+import com.bizmanager.presentation.ui.paginateList
 import com.bizmanager.presentation.ui.toCurrencyLabel
+import kotlin.math.ceil
 
 @Composable
 fun ProductListScreen(
@@ -26,8 +29,49 @@ fun ProductListScreen(
     var productToDelete by remember { mutableStateOf<Product?>(null) }
     var refreshTrigger by remember { mutableStateOf(0) }
 
+    // Filter & Pagination States
+    var searchQuery by remember { mutableStateOf("") }
+    var statusFilter by remember { mutableStateOf("Semua") } // "Semua", "Aktif", "Nonaktif"
+    
+    var currentPage by remember { mutableStateOf(1) }
+    var pageSize by remember { mutableStateOf(20) }
+
     LaunchedEffect(refreshTrigger) {
-        products = productRepository.findAll(includeInactive = false)
+        products = productRepository.findAll(includeInactive = true)
+    }
+
+    // Advanced in-memory filtering
+    val filteredProducts by remember(products, searchQuery, statusFilter) {
+        derivedStateOf {
+            products.filter { p ->
+                val matchesSearch = p.name.contains(searchQuery, ignoreCase = true) ||
+                        p.code.contains(searchQuery, ignoreCase = true)
+                
+                val matchesStatus = when (statusFilter) {
+                    "Aktif" -> p.isActive
+                    "Nonaktif" -> !p.isActive
+                    else -> true
+                }
+                
+                matchesSearch && matchesStatus
+            }
+        }
+    }
+
+    // Pagination Logic
+    val totalElements = filteredProducts.size
+    val totalPages = if (totalElements == 0) 1 else ceil(totalElements.toDouble() / pageSize).toInt()
+    
+    // Auto-adjust page if out of bounds after filtering
+    LaunchedEffect(totalPages) {
+        if (currentPage > totalPages) currentPage = totalPages
+        if (currentPage < 1) currentPage = 1
+    }
+
+    val paginatedProducts by remember(filteredProducts, currentPage, pageSize) {
+        derivedStateOf {
+            paginateList(filteredProducts, currentPage, pageSize)
+        }
     }
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
@@ -41,6 +85,36 @@ fun ProductListScreen(
         }
         Spacer(Modifier.height(16.dp))
 
+        // Filter Controls
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it; currentPage = 1 },
+                label = { Text("Cari (Nama, Kode)") },
+                modifier = Modifier.weight(1f)
+            )
+            
+            var expanded by remember { mutableStateOf(false) }
+            Box(modifier = Modifier.width(200.dp)) {
+                OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth().height(56.dp)) {
+                    Text("Status: $statusFilter")
+                }
+                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                    listOf("Semua", "Aktif", "Nonaktif").forEach { opt ->
+                        DropdownMenuItem(onClick = {
+                            statusFilter = opt
+                            currentPage = 1
+                            expanded = false
+                        }) {
+                            Text(opt)
+                        }
+                    }
+                }
+            }
+        }
+        
+        Spacer(Modifier.height(16.dp))
+
         Row(modifier = Modifier.fillMaxWidth().padding(8.dp)) {
             Text("Kode", modifier = Modifier.weight(1f), style = MaterialTheme.typography.subtitle2)
             Text("Nama", modifier = Modifier.weight(2f), style = MaterialTheme.typography.subtitle2)
@@ -52,7 +126,7 @@ fun ProductListScreen(
         Divider()
 
         LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f)) {
-            items(products) { p ->
+            items(paginatedProducts) { p ->
                 Row(
                     modifier = Modifier.fillMaxWidth().clickable { onNavigateToDetail(p.id) }.padding(8.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -77,6 +151,16 @@ fun ProductListScreen(
                 Divider()
             }
         }
+
+        Divider()
+        PaginationControl(
+            currentPage = currentPage,
+            totalPages = totalPages,
+            pageSize = pageSize,
+            totalElements = totalElements,
+            onPageChanged = { currentPage = it },
+            onPageSizeChanged = { pageSize = it; currentPage = 1 }
+        )
         
         if (showDeleteDialog && productToDelete != null) {
             AlertDialog(

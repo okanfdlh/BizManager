@@ -150,7 +150,7 @@ private fun Sidebar(
                         }
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = "Workspace untuk invoice, piutang, dan insight keuangan harian.",
+                            text = "Workspace untuk faktur, piutang, dan insight keuangan harian.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.88f)
                         )
@@ -169,7 +169,7 @@ private fun Sidebar(
             SidebarItem("Products", Icons.Default.Inventory, currentScreen in listOf(Screen.ProductList, Screen.ProductForm, Screen.ProductDetail), collapsed) {
                 onNavigate(Screen.ProductList)
             }
-            SidebarItem("Invoices", Icons.Default.Receipt, currentScreen in listOf(Screen.InvoiceList, Screen.InvoiceForm, Screen.InvoiceDetail), collapsed) {
+            SidebarItem("Faktur", Icons.Default.Receipt, currentScreen in listOf(Screen.InvoiceList, Screen.InvoiceForm, Screen.InvoiceDetail), collapsed) {
                 onNavigate(Screen.InvoiceList)
             }
             SidebarItem("Payments", Icons.Default.Payments, currentScreen in listOf(Screen.PaymentList, Screen.PaymentForm), collapsed) {

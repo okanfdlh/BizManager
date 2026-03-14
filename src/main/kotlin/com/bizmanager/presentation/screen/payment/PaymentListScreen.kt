@@ -36,7 +36,7 @@ fun PaymentListScreen(
 
         Row(modifier = Modifier.fillMaxWidth().padding(8.dp)) {
             Text("No. Pembayaran", modifier = Modifier.weight(1f), style = MaterialTheme.typography.subtitle2)
-            Text("No. Invoice", modifier = Modifier.weight(1f), style = MaterialTheme.typography.subtitle2)
+            Text("No. Faktur", modifier = Modifier.weight(1f), style = MaterialTheme.typography.subtitle2)
             Text("Tanggal", modifier = Modifier.weight(1f), style = MaterialTheme.typography.subtitle2)
             Text("Metode", modifier = Modifier.weight(1f), style = MaterialTheme.typography.subtitle2)
             Text("Nominal", modifier = Modifier.weight(1f), style = MaterialTheme.typography.subtitle2)

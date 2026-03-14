@@ -50,12 +50,12 @@ fun InvoiceFormScreen(
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-            Text(if (invoiceId == null) "Buat Invoice Baru" else "Edit Draft Invoice", style = MaterialTheme.typography.h4)
+            Text(if (invoiceId == null) "Buat Faktur Baru" else "Edit Draft Faktur", style = MaterialTheme.typography.h4)
             Row {
                 Button(onClick = onBack, colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.secondary)) { Text("Batal") }
                 Spacer(Modifier.width(8.dp))
                 Button(onClick = { saveInvoice(invoiceId, true, selectedCustomerId, dueDate, additionalCostStr, notes, items, invoiceService, onBack, { errorMessage = it }) }) {
-                    Text("Post Invoice (Kunci)")
+                    Text("Post Faktur (Kunci)")
                 }
                 Spacer(Modifier.width(8.dp))
                 Button(onClick = { saveInvoice(invoiceId, false, selectedCustomerId, dueDate, additionalCostStr, notes, items, invoiceService, onBack, { errorMessage = it }) }) {
@@ -108,7 +108,7 @@ fun InvoiceFormScreen(
         
         Spacer(Modifier.height(24.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text("Item Invoice", style = MaterialTheme.typography.h6)
+            Text("Item Faktur", style = MaterialTheme.typography.h6)
             Button(onClick = { items.add(UiInvoiceItem(null, "1", "0")) }) { 
                 Icon(Icons.Default.Add, contentDescription = "Tambah Item")
                 Spacer(Modifier.width(4.dp))
@@ -182,7 +182,7 @@ private fun saveInvoice(
         return
     }
     if (uiItems.isEmpty()) {
-        onError("Invoice minimal harus memiliki 1 item.")
+        onError("Faktur minimal harus memiliki 1 item.")
         return
     }
     if (uiItems.any { it.productId == null }) {

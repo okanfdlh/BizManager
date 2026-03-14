@@ -31,7 +31,7 @@ fun AboutScreen() {
     ) {
         Text("Tentang Aplikasi", style = MaterialTheme.typography.headlineMedium)
         Text(
-            "BizManager adalah workspace desktop untuk mengelola customer, invoice, pembayaran, piutang, dan insight operasional harian.",
+            "BizManager adalah workspace desktop untuk mengelola customer, faktur, pembayaran, piutang, dan insight operasional harian.",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -65,7 +65,7 @@ fun AboutScreen() {
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Text("Cakupan Saat Ini", style = MaterialTheme.typography.titleMedium)
-                Text("Dashboard visual, manajemen master data, invoice, pembayaran, aging piutang, buku besar customer, report periode, dan utilitas backup.", style = MaterialTheme.typography.bodyMedium)
+                Text("Dashboard visual, manajemen master data, faktur, pembayaran, aging piutang, buku besar customer, report periode, dan utilitas backup.", style = MaterialTheme.typography.bodyMedium)
             }
         }
     }

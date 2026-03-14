@@ -28,8 +28,11 @@ fun InvoiceListScreen(
 ) {
     var invoices by remember { mutableStateOf(emptyList<Invoice>()) }
     var customers by remember { mutableStateOf(emptyMap<Int, String>()) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var invoiceToDelete by remember { mutableStateOf<Invoice?>(null) }
+    var refreshTrigger by remember { mutableStateOf(0) }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(refreshTrigger) {
         val inv = invoiceRepository.findAll()
         val cust = customerRepository.findAll(includeInactive = true).associateBy({ it.id }, { it.name })
         invoices = inv
@@ -38,11 +41,11 @@ fun InvoiceListScreen(
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text("Daftar Invoice", style = MaterialTheme.typography.h4)
+            Text("Daftar Faktur", style = MaterialTheme.typography.h4)
             Button(onClick = { onNavigateToForm(null) }) {
-                Icon(Icons.Default.Add, contentDescription = "Buat Invoice")
+                Icon(Icons.Default.Add, contentDescription = "Buat Faktur")
                 Spacer(Modifier.width(8.dp))
-                Text("Buat Invoice")
+                Text("Buat Faktur")
             }
         }
         Spacer(Modifier.height(16.dp))
@@ -53,8 +56,9 @@ fun InvoiceListScreen(
             Text("Customer", modifier = Modifier.weight(2f), style = MaterialTheme.typography.subtitle2)
             Text("Grand Total", modifier = Modifier.weight(1.5f), style = MaterialTheme.typography.subtitle2)
             Text("Status", modifier = Modifier.weight(1f), style = MaterialTheme.typography.subtitle2)
+            Text("Total Dibayar", modifier = Modifier.weight(1.5f), style = MaterialTheme.typography.subtitle2)
             Text("Sisa Piutang", modifier = Modifier.weight(1.5f), style = MaterialTheme.typography.subtitle2)
-            Text("Aksi", modifier = Modifier.width(100.dp), style = MaterialTheme.typography.subtitle2)
+            Text("Aksi", modifier = Modifier.width(150.dp), style = MaterialTheme.typography.subtitle2)
         }
         Divider()
 
@@ -76,18 +80,59 @@ fun InvoiceListScreen(
                     }
                     Text(inv.invoiceStatus.name, color = statusColor, modifier = Modifier.weight(1f))
                     
+                    Text(inv.totalPaid.toCurrencyLabel(), modifier = Modifier.weight(1.5f))
                     Text(inv.balanceDue.toCurrencyLabel(), modifier = Modifier.weight(1.5f), color = if (inv.balanceDue > BigDecimal.ZERO) MaterialTheme.colors.error else MaterialTheme.colors.onSurface)
                     
-                    Row(modifier = Modifier.width(100.dp)) {
+                    Row(modifier = Modifier.width(150.dp)) {
                         if (inv.invoiceStatus == InvoiceStatus.Draft) {
                             TextButton(onClick = { onNavigateToForm(inv.id) }) { Text("Edit") }
                         } else {
                             TextButton(onClick = { onNavigateToDetail(inv.id) }) { Text("Lihat") }
                         }
+                        TextButton(
+                            onClick = { 
+                                invoiceToDelete = inv
+                                showDeleteDialog = true 
+                            },
+                            colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colors.error)
+                        ) { Text("Hapus") }
                     }
                 }
                 Divider()
             }
+        }
+        
+        if (showDeleteDialog && invoiceToDelete != null) {
+            AlertDialog(
+                onDismissRequest = { showDeleteDialog = false },
+                title = { Text("Hapus Faktur") },
+                text = { Text("Apakah Anda yakin ingin menghapus Faktur ${invoiceToDelete?.invoiceNumber}?") },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            invoiceToDelete?.let {
+                                try {
+                                    invoiceRepository.deleteItemsForInvoice(it.id)
+                                    invoiceRepository.delete(it.id)
+                                    refreshTrigger++
+                                } catch (e: Exception) {
+                                    e.printStackTrace()
+                                }
+                            }
+                            showDeleteDialog = false
+                            invoiceToDelete = null
+                        },
+                        colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.error)
+                    ) {
+                        Text("Hapus", color = MaterialTheme.colors.onError)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDeleteDialog = false }) {
+                        Text("Batal")
+                    }
+                }
+            )
         }
     }
 }

@@ -3,6 +3,7 @@ package com.bizmanager.data.repository
 import com.bizmanager.data.database.Payments
 import com.bizmanager.domain.model.Payment
 import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.time.LocalDateTime
 
@@ -45,4 +46,8 @@ class PaymentRepository {
         notes = row[Payments.notes],
         createdAt = row[Payments.createdAt]
     )
+
+    fun delete(id: Int) = transaction {
+        Payments.deleteWhere { Payments.id eq id }
+    }
 }

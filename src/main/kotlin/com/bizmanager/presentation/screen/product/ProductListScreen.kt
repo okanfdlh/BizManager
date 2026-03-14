@@ -22,8 +22,11 @@ fun ProductListScreen(
     onNavigateToDetail: (Int) -> Unit
 ) {
     var products by remember { mutableStateOf(emptyList<Product>()) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var productToDelete by remember { mutableStateOf<Product?>(null) }
+    var refreshTrigger by remember { mutableStateOf(0) }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(refreshTrigger) {
         products = productRepository.findAll(includeInactive = false)
     }
 
@@ -62,10 +65,49 @@ fun ProductListScreen(
                     
                     Row(modifier = Modifier.width(150.dp)) {
                         TextButton(onClick = { onNavigateToForm(p.id) }) { Text("Edit") }
+                        TextButton(
+                            onClick = { 
+                                productToDelete = p
+                                showDeleteDialog = true 
+                            },
+                            colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colors.error)
+                        ) { Text("Hapus") }
                     }
                 }
                 Divider()
             }
+        }
+        
+        if (showDeleteDialog && productToDelete != null) {
+            AlertDialog(
+                onDismissRequest = { showDeleteDialog = false },
+                title = { Text("Hapus Produk") },
+                text = { Text("Apakah Anda yakin ingin menghapus ${productToDelete?.name}? Data yang terkait dengan faktur tidak dapat dihapus.") },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            productToDelete?.let {
+                                try {
+                                    productRepository.delete(it.id)
+                                    refreshTrigger++
+                                } catch (e: Exception) {
+                                    e.printStackTrace()
+                                }
+                            }
+                            showDeleteDialog = false
+                            productToDelete = null
+                        },
+                        colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.error)
+                    ) {
+                        Text("Hapus", color = MaterialTheme.colors.onError)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDeleteDialog = false }) {
+                        Text("Batal")
+                    }
+                }
+            )
         }
     }
 }

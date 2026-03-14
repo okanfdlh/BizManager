@@ -30,6 +30,7 @@ fun InvoiceDetailScreen(
     var customer by remember { mutableStateOf<Customer?>(null) }
     var items by remember { mutableStateOf(emptyList<InvoiceItem>()) }
     var payments by remember { mutableStateOf(emptyList<Payment>()) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
     var refreshTrigger by remember { mutableStateOf(0) }
 
@@ -47,7 +48,7 @@ fun InvoiceDetailScreen(
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-            Text("Detail Invoice: ${inv.invoiceNumber}", style = MaterialTheme.typography.h4)
+            Text("Detail Faktur: ${inv.invoiceNumber}", style = MaterialTheme.typography.h4)
             Row {
                 Button(onClick = onBack) { Text("Kembali") }
                 Spacer(Modifier.width(8.dp))
@@ -65,8 +66,15 @@ fun InvoiceDetailScreen(
                         },
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colors.error)
                     ) {
-                        Text("Cancel Invoice")
+                        Text("Cancel Faktur")
                     }
+                }
+                Spacer(Modifier.width(8.dp))
+                OutlinedButton(
+                    onClick = { showDeleteDialog = true },
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colors.error)
+                ) {
+                    Text("Hapus")
                 }
             }
         }
@@ -140,6 +148,38 @@ fun InvoiceDetailScreen(
                     Divider()
                 }
             }
+        }
+        
+        if (showDeleteDialog && invoice != null) {
+            AlertDialog(
+                onDismissRequest = { showDeleteDialog = false },
+                title = { Text("Hapus Faktur") },
+                text = { Text("Apakah Anda yakin ingin menghapus Faktur ${invoice?.invoiceNumber}?") },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            invoice?.let {
+                                try {
+                                    invoiceRepository.deleteItemsForInvoice(it.id)
+                                    invoiceRepository.delete(it.id)
+                                    onBack()
+                                } catch (e: Exception) {
+                                    e.printStackTrace()
+                                }
+                            }
+                            showDeleteDialog = false
+                        },
+                        colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.error)
+                    ) {
+                        Text("Hapus", color = MaterialTheme.colors.onError)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDeleteDialog = false }) {
+                        Text("Batal")
+                    }
+                }
+            )
         }
     }
 }

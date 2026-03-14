@@ -66,7 +66,7 @@ fun SettingsScreen(
             Column(modifier = Modifier.weight(1f).padding(start = 8.dp)) {
                 Text("Preferensi Sistem", style = MaterialTheme.typography.h6)
                 Divider(modifier = Modifier.padding(vertical = 8.dp))
-                OutlinedTextField(value = invoicePrefix, onValueChange = { invoicePrefix = it }, label = { Text("Prefix Invoice (Mis: INV)") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = invoicePrefix, onValueChange = { invoicePrefix = it }, label = { Text("Prefix Faktur (Mis: INV)") }, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(value = paymentPrefix, onValueChange = { paymentPrefix = it }, label = { Text("Prefix Pembayaran (Mis: PAY)") }, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(value = currency, onValueChange = { currency = it }, label = { Text("Mata Uang (Mis: Rp.)") }, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(value = backupFolder, onValueChange = { backupFolder = it }, label = { Text("Folder Backup Default") }, modifier = Modifier.fillMaxWidth())

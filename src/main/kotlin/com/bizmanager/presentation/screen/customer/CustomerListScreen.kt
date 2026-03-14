@@ -21,8 +21,11 @@ fun CustomerListScreen(
     onNavigateToDetail: (Int) -> Unit
 ) {
     var customers by remember { mutableStateOf(emptyList<Customer>()) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var customerToDelete by remember { mutableStateOf<Customer?>(null) }
+    var refreshTrigger by remember { mutableStateOf(0) }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(refreshTrigger) {
         customers = customerRepository.findAll(includeInactive = false)
     }
 
@@ -65,10 +68,49 @@ fun CustomerListScreen(
                     
                     Row(modifier = Modifier.width(150.dp)) {
                         TextButton(onClick = { onNavigateToForm(c.id) }) { Text("Edit") }
+                        TextButton(
+                            onClick = { 
+                                customerToDelete = c
+                                showDeleteDialog = true 
+                            },
+                            colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colors.error)
+                        ) { Text("Hapus") }
                     }
                 }
                 Divider()
             }
+        }
+
+        if (showDeleteDialog && customerToDelete != null) {
+            AlertDialog(
+                onDismissRequest = { showDeleteDialog = false },
+                title = { Text("Hapus Customer") },
+                text = { Text("Apakah Anda yakin ingin menghapus ${customerToDelete?.name}? Data terkait (faktur/pembayaran) juga dapat bermasalah jika ada dependensi.") },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            customerToDelete?.let {
+                                try {
+                                    customerRepository.delete(it.id)
+                                    refreshTrigger++
+                                } catch (e: Exception) {
+                                    e.printStackTrace()
+                                }
+                            }
+                            showDeleteDialog = false
+                            customerToDelete = null
+                        },
+                        colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.error)
+                    ) {
+                        Text("Hapus", color = MaterialTheme.colors.onError)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDeleteDialog = false }) {
+                        Text("Batal")
+                    }
+                }
+            )
         }
     }
 }

@@ -24,6 +24,7 @@ fun CustomerDetailScreen(
 ) {
     var customer by remember { mutableStateOf<Customer?>(null) }
     var invoices by remember { mutableStateOf(emptyList<Invoice>()) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
     var totalOmzet by remember { mutableStateOf(BigDecimal.ZERO) }
     var totalPiutang by remember { mutableStateOf(BigDecimal.ZERO) }
@@ -50,7 +51,16 @@ fun CustomerDetailScreen(
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
             Text("Detail Customer: ${customer?.name ?: "Loading..."}", style = MaterialTheme.typography.h4)
-            Button(onClick = onBack) { Text("Kembali") }
+            Row {
+                OutlinedButton(
+                    onClick = { showDeleteDialog = true },
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colors.error)
+                ) {
+                    Text("Hapus")
+                }
+                Spacer(Modifier.width(8.dp))
+                Button(onClick = onBack) { Text("Kembali") }
+            }
         }
         Spacer(Modifier.height(16.dp))
         
@@ -60,7 +70,7 @@ fun CustomerDetailScreen(
         }
         
         Spacer(Modifier.height(24.dp))
-        Text("Histori Invoice", style = MaterialTheme.typography.h6)
+        Text("Histori Faktur", style = MaterialTheme.typography.h6)
         Spacer(Modifier.height(8.dp))
 
         Row(modifier = Modifier.fillMaxWidth().padding(8.dp)) {
@@ -83,6 +93,37 @@ fun CustomerDetailScreen(
                 }
                 Divider()
             }
+        }
+        
+        if (showDeleteDialog && customer != null) {
+            AlertDialog(
+                onDismissRequest = { showDeleteDialog = false },
+                title = { Text("Hapus Customer") },
+                text = { Text("Apakah Anda yakin ingin menghapus ${customer?.name}? Data terkait (faktur/pembayaran) juga dapat bermasalah jika ada dependensi.") },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            customer?.let {
+                                try {
+                                    customerRepository.delete(it.id)
+                                    onBack()
+                                } catch (e: Exception) {
+                                    e.printStackTrace()
+                                }
+                            }
+                            showDeleteDialog = false
+                        },
+                        colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.error)
+                    ) {
+                        Text("Hapus", color = MaterialTheme.colors.onError)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDeleteDialog = false }) {
+                        Text("Batal")
+                    }
+                }
+            )
         }
     }
 }

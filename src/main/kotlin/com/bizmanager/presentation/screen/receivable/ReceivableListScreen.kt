@@ -91,7 +91,7 @@ fun ReceivableListScreen(
         Spacer(Modifier.height(24.dp))
 
         Row(modifier = Modifier.fillMaxWidth().padding(8.dp)) {
-            Text("No. Invoice", modifier = Modifier.weight(1f), style = MaterialTheme.typography.subtitle2)
+            Text("No. Faktur", modifier = Modifier.weight(1f), style = MaterialTheme.typography.subtitle2)
             Text("Customer", modifier = Modifier.weight(1.5f), style = MaterialTheme.typography.subtitle2)
             Text("Jatuh Tempo", modifier = Modifier.weight(1f), style = MaterialTheme.typography.subtitle2)
             Text("Sisa Piutang", modifier = Modifier.weight(1f), style = MaterialTheme.typography.subtitle2)

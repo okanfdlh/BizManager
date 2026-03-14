@@ -90,9 +90,9 @@ fun DashboardScreen(
     val growthInsights = remember(report) { buildGrowthInsights(report.monthlyTrend) }
     val invoiceHealthSlices = remember(report) {
         listOf(
-            PieSliceData("Lunas", report.paidInvoiceCount.toFloat(), PaidColor, "${report.paidInvoiceCount} invoice"),
-            PieSliceData("Outstanding", report.outstandingInvoiceCount.toFloat(), OutstandingColor, "${report.outstandingInvoiceCount} invoice"),
-            PieSliceData("Belum Dibayar", report.unpaidInvoiceCount.toFloat(), UnpaidColor, "${report.unpaidInvoiceCount} invoice")
+            PieSliceData("Lunas", report.paidInvoiceCount.toFloat(), PaidColor, "${report.paidInvoiceCount} faktur"),
+            PieSliceData("Outstanding", report.outstandingInvoiceCount.toFloat(), OutstandingColor, "${report.outstandingInvoiceCount} faktur"),
+            PieSliceData("Belum Dibayar", report.unpaidInvoiceCount.toFloat(), UnpaidColor, "${report.unpaidInvoiceCount} faktur")
         )
     }
     val salesMixSlices = remember(report) {
@@ -117,7 +117,7 @@ fun DashboardScreen(
         )
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Button(onClick = onNavigateToInvoices) { Text("Buka Invoice") }
+            Button(onClick = onNavigateToInvoices) { Text("Buka Faktur") }
             Button(onClick = onNavigateToReceivables) { Text("Monitor Piutang") }
             Button(onClick = onNavigateToLedger) { Text("Buku Besar Customer") }
         }
@@ -147,17 +147,17 @@ fun DashboardScreen(
             DashboardMetricCard(
                 title = "Piutang Aktif",
                 value = report.activeReceivables.toCurrencyLabel(),
-                description = "${report.outstandingInvoiceCount + report.unpaidInvoiceCount} invoice masih perlu ditagih"
+                description = "${report.outstandingInvoiceCount + report.unpaidInvoiceCount} faktur masih perlu ditagih"
             )
             DashboardMetricCard(
                 title = "Penjualan Lunas",
                 value = report.settledSales.toCurrencyLabel(),
-                description = "${report.paidInvoiceCount} invoice sudah lunas"
+                description = "${report.paidInvoiceCount} faktur sudah lunas"
             )
             DashboardMetricCard(
                 title = "Penjualan Masih Hutang",
                 value = report.creditSales.toCurrencyLabel(),
-                description = "${report.outstandingInvoiceCount + report.unpaidInvoiceCount} invoice masih punya sisa tagihan"
+                description = "${report.outstandingInvoiceCount + report.unpaidInvoiceCount} faktur masih punya sisa tagihan"
             )
         }
 
@@ -171,12 +171,12 @@ fun DashboardScreen(
                 LineTrendChart(report.monthlyTrend)
             }
             InsightCard(
-                title = "Status Invoice",
+                title = "Status Faktur",
                 modifier = Modifier.weight(1f)
             ) {
                 PieChartSection(
                     slices = invoiceHealthSlices,
-                    centerTitle = "Invoice",
+                    centerTitle = "Faktur",
                     centerValue = (report.paidInvoiceCount + report.outstandingInvoiceCount + report.unpaidInvoiceCount).toString()
                 )
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
@@ -533,8 +533,8 @@ private fun PieLegendRow(slice: PieSliceData, total: Float) {
 
 @Composable
 private fun ProfitBreakdown(report: DashboardReport) {
-    BreakdownRow("Profit invoice lunas", report.settledProfit)
-    BreakdownRow("Profit invoice ongoing", report.creditProfit)
+    BreakdownRow("Profit faktur lunas", report.settledProfit)
+    BreakdownRow("Profit faktur ongoing", report.creditProfit)
     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
     BreakdownRow("Laba kotor bulan ini", report.periodSummary.totalGrossProfit)
     BreakdownRow("Laba bersih bulan ini", report.periodSummary.totalNetProfit)
@@ -568,7 +568,7 @@ private fun TopReceivableCustomers(customers: List<CustomerReceivableSnapshot>) 
                     Column {
                         Text(customer.customerName, fontWeight = FontWeight.SemiBold)
                         Text(
-                            "${customer.invoiceCount} invoice aktif",
+                            "${customer.invoiceCount} faktur aktif",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

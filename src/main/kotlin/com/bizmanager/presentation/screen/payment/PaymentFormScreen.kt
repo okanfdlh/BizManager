@@ -64,7 +64,7 @@ fun PaymentFormScreen(
         val activeInv = invoices.find { it.id == selectedInvoiceId }
         Box {
             OutlinedButton(onClick = { invDropdownExpanded = true }, modifier = Modifier.fillMaxWidth()) {
-                val label = activeInv?.let { "${it.invoiceNumber} - Sisa Tagihan Rp${it.balanceDue}" } ?: "Pilih Invoice Belum Lunas *"
+                val label = activeInv?.let { "${it.invoiceNumber} - Sisa Tagihan Rp${it.balanceDue}" } ?: "Pilih Faktur Belum Lunas *"
                 Text(label)
             }
             DropdownMenu(expanded = invDropdownExpanded, onDismissRequest = { invDropdownExpanded = false }) {
@@ -119,7 +119,7 @@ fun PaymentFormScreen(
             onClick = {
                 val invId = selectedInvoiceId
                 if (invId == null) {
-                    errorMessage = "Pilih invoice terlebih dahulu."
+                    errorMessage = "Pilih faktur terlebih dahulu."
                     return@Button
                 }
                 val bdAmount = try { BigDecimal(amountStr) } catch(e: Exception) { null }

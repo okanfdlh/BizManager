@@ -147,4 +147,8 @@ class InvoiceRepository {
         grossProfit = row[InvoiceItems.grossProfit],
         createdAt = row[InvoiceItems.createdAt]
     )
+
+    fun delete(id: Int) = transaction {
+        Invoices.deleteWhere { Invoices.id eq id }
+    }
 }

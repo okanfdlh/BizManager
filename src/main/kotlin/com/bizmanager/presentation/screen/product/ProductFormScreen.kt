@@ -82,7 +82,7 @@ fun ProductFormScreen(
         
         Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
             Checkbox(checked = isActive, onCheckedChange = { isActive = it })
-            Text("Produk Aktif (Muncul saat buat invoice)")
+            Text("Produk Aktif (Muncul saat buat faktur)")
         }
         
         Spacer(Modifier.height(24.dp))

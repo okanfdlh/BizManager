@@ -56,11 +56,28 @@ import com.bizmanager.presentation.ui.toDateTimeLabel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
+import com.bizmanager.domain.service.InvoiceService
+import com.bizmanager.domain.service.PaymentService
+import com.bizmanager.data.repository.ProductRepository
+import com.bizmanager.domain.model.Product
+import com.bizmanager.domain.service.InvoiceItemInput
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.time.LocalDate
+import java.time.LocalTime
+import java.math.BigDecimal
+import androidx.compose.material3.AlertDialog
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun CustomerLedgerScreen(
     customerRepository: CustomerRepository,
-    customerLedgerService: CustomerLedgerService
+    customerLedgerService: CustomerLedgerService,
+    invoiceService: InvoiceService,
+    paymentService: PaymentService,
+    productRepository: ProductRepository
 ) {
     var customers by remember { mutableStateOf<List<Customer>>(emptyList()) }
     var query by remember { mutableStateOf("") }
@@ -69,14 +86,21 @@ fun CustomerLedgerScreen(
     var ledgerReport by remember { mutableStateOf<CustomerLedgerReport?>(null) }
     var loading by remember { mutableStateOf(false) }
     val expandedInvoices = remember { mutableStateMapOf<Int, Boolean>() }
+    
+    var showQuickFakturDialog by remember { mutableStateOf(false) }
+    var productsList by remember { mutableStateOf<List<Product>>(emptyList()) }
+    var loadTrigger by remember { mutableStateOf(0) }
 
     LaunchedEffect(Unit) {
         customers = withContext(Dispatchers.IO) {
             customerRepository.findAll(includeInactive = true)
         }
+        productsList = withContext(Dispatchers.IO) {
+            productRepository.findAll(includeInactive = false)
+        }
     }
 
-    LaunchedEffect(selectedCustomer?.id) {
+    LaunchedEffect(selectedCustomer?.id, loadTrigger) {
         val customer = selectedCustomer ?: run {
             ledgerReport = null
             return@LaunchedEffect
@@ -108,7 +132,7 @@ fun CustomerLedgerScreen(
 
         item {
             Text(
-                "Cari customer, pilih dari dropdown, lalu review semua invoice, item produk, histori pembayaran, dan posisi hutang per faktur.",
+                "Cari customer, pilih dari dropdown, lalu review semua faktur, item produk, histori pembayaran, dan posisi hutang per faktur.",
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -194,7 +218,7 @@ fun CustomerLedgerScreen(
             else -> {
                 val report = ledgerReport!!
                 item {
-                    LedgerSummary(report)
+                    LedgerSummary(report) { showQuickFakturDialog = true }
                 }
                 items(report.invoices, key = { it.invoice.id }) { entry ->
                     val isExpanded = expandedInvoices[entry.invoice.id] ?: false
@@ -207,11 +231,47 @@ fun CustomerLedgerScreen(
             }
         }
     }
+    
+    if (showQuickFakturDialog && selectedCustomer != null) {
+        QuickFakturDialog(
+            customer = selectedCustomer!!,
+            products = productsList,
+            onDismiss = { showQuickFakturDialog = false },
+            onSubmit = { tanggal, noFaktur, notes, productId, qty, diskon, additionalCost, paid, isPosted, paymentMethod ->
+                try {
+                    val inv = invoiceService.createInvoice(
+                        customerId = selectedCustomer!!.id,
+                        dueDate = tanggal.plusDays(30),
+                        additionalCost = additionalCost,
+                        notes = notes,
+                        isDraft = !isPosted,
+                        itemsInput = if (productId != null) listOf(InvoiceItemInput(productId, qty, diskon)) else emptyList(),
+                        customDate = tanggal,
+                        customInvoiceNumber = noFaktur.ifBlank { null }
+                    )
+                    
+                    if (isPosted && paid > BigDecimal.ZERO) {
+                        paymentService.addPayment(
+                            invoiceId = inv.id,
+                            amount = paid,
+                            paymentMethod = paymentMethod,
+                            reference = null,
+                            notes = "Quick Payment"
+                        )
+                    }
+                    showQuickFakturDialog = false
+                    loadTrigger++
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        )
+    }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun LedgerSummary(report: CustomerLedgerReport) {
+private fun LedgerSummary(report: CustomerLedgerReport, onQuickInput: () -> Unit) {
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
@@ -222,21 +282,26 @@ private fun LedgerSummary(report: CustomerLedgerReport) {
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(report.customer.name, style = MaterialTheme.typography.headlineSmall)
-                Text(
-                    listOfNotNull(report.customer.company, report.customer.phone, report.customer.email).joinToString(" • "),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(report.customer.name, style = MaterialTheme.typography.headlineSmall)
+                    Text(
+                        listOfNotNull(report.customer.company, report.customer.phone, report.customer.email).joinToString(" • "),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Button(onClick = onQuickInput) {
+                    Text("Quick Input Faktur")
+                }
             }
 
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                SummaryMiniCard("Total Invoice", report.summary.totalInvoices.toString())
-                SummaryMiniCard("Invoice Ongoing", report.summary.openInvoices.toString())
-                SummaryMiniCard("Invoice Lunas", report.summary.settledInvoices.toString())
+                SummaryMiniCard("Total Faktur", report.summary.totalInvoices.toString())
+                SummaryMiniCard("Faktur Ongoing", report.summary.openInvoices.toString())
+                SummaryMiniCard("Faktur Lunas", report.summary.settledInvoices.toString())
                 SummaryMiniCard("Total Tagihan", report.summary.totalInvoiced.toCurrencyLabel())
                 SummaryMiniCard("Total Terbayar", report.summary.totalPaid.toCurrencyLabel())
                 SummaryMiniCard("Sisa Hutang", report.summary.totalOutstanding.toCurrencyLabel())
@@ -314,7 +379,7 @@ private fun InvoiceLedgerCard(
                     onClick = {},
                     label = { Text(if (entry.isSettled) "Lunas" else "Ongoing") }
                 )
-                AssistChip(onClick = {}, label = { Text("Status invoice: ${entry.invoice.invoiceStatus.name}") })
+                AssistChip(onClick = {}, label = { Text("Status faktur: ${entry.invoice.invoiceStatus.name}") })
                 AssistChip(onClick = {}, label = { Text("Status bayar: ${entry.invoice.paymentStatus.name}") })
             }
 
@@ -370,7 +435,7 @@ private fun InvoiceLedgerCard(
                         shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
                     ) {
                         Column(modifier = Modifier.fillMaxWidth().padding(14.dp)) {
-                            Text("Invoice dibuat", fontWeight = FontWeight.SemiBold)
+                            Text("Faktur dibuat", fontWeight = FontWeight.SemiBold)
                             Text(entry.invoice.date.toDateTimeLabel(), color = MaterialTheme.colorScheme.onSurfaceVariant)
                             if (!entry.invoice.notes.isNullOrBlank()) {
                                 Spacer(modifier = Modifier.height(4.dp))
@@ -413,4 +478,171 @@ private fun InvoiceLedgerCard(
             }
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun QuickFakturDialog(
+    customer: Customer,
+    products: List<Product>,
+    onDismiss: () -> Unit,
+    onSubmit: (
+        tanggal: LocalDateTime,
+        noFaktur: String,
+        notes: String,
+        productId: Int?,
+        qty: Int,
+        diskon: BigDecimal,
+        additionalCost: BigDecimal,
+        paid: BigDecimal,
+        isPosted: Boolean,
+        paymentMethod: String
+    ) -> Unit
+) {
+    var dateStr by remember { mutableStateOf(LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))) }
+    var noFaktur by remember { mutableStateOf("") }
+    var notes by remember { mutableStateOf("") }
+
+    var selectedProductId by remember { mutableStateOf<Int?>(null) }
+    var prodDropdownExpanded by remember { mutableStateOf(false) }
+
+    var qtyStr by remember { mutableStateOf("1") }
+    var diskonStr by remember { mutableStateOf("0") }
+    var manualTotalStr by remember { mutableStateOf("0") }
+
+    var isPosted by remember { mutableStateOf(false) }
+    var paidStr by remember { mutableStateOf("0") }
+    var paymentMethod by remember { mutableStateOf("Transfer Bank") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Quick Input Faktur - ${customer.name}") },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(8.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OutlinedTextField(
+                    value = dateStr,
+                    onValueChange = { dateStr = it },
+                    label = { Text("Tanggal (YYYY-MM-DD)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = noFaktur,
+                    onValueChange = { noFaktur = it },
+                    label = { Text("No. Faktur (Kosong = Otomatis)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = notes,
+                    onValueChange = { notes = it },
+                    label = { Text("Deskripsi / Catatan") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                
+                ExposedDropdownMenuBox(
+                    expanded = prodDropdownExpanded,
+                    onExpandedChange = { prodDropdownExpanded = !prodDropdownExpanded }
+                ) {
+                    val pName = products.find { it.id == selectedProductId }?.name ?: "Tanpa Produk (Input Total Manual)"
+                    OutlinedTextField(
+                        value = pName,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Pilih Produk") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = prodDropdownExpanded) },
+                        modifier = Modifier.fillMaxWidth().menuAnchor()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = prodDropdownExpanded,
+                        onDismissRequest = { prodDropdownExpanded = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Tanpa Produk (Input Total Manual)") },
+                            onClick = { selectedProductId = null; prodDropdownExpanded = false }
+                        )
+                        products.forEach { p ->
+                            DropdownMenuItem(
+                                text = { Text("${p.code} - ${p.name}") },
+                                onClick = { selectedProductId = p.id; prodDropdownExpanded = false }
+                            )
+                        }
+                    }
+                }
+
+                if (selectedProductId != null) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(
+                            value = qtyStr,
+                            onValueChange = { qtyStr = it },
+                            label = { Text("Qty") },
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedTextField(
+                            value = diskonStr,
+                            onValueChange = { diskonStr = it },
+                            label = { Text("Diskon (Rp)") },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                } else {
+                    OutlinedTextField(
+                        value = manualTotalStr,
+                        onValueChange = { manualTotalStr = it },
+                        label = { Text("Total Faktur Manual (Rp)") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+                
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    androidx.compose.material3.Checkbox(
+                        checked = isPosted,
+                        onCheckedChange = { isPosted = it }
+                    )
+                    Text("Post Faktur (Kunci dokumen & aktifkan bayar)")
+                }
+                
+                if (isPosted) {
+                    OutlinedTextField(
+                        value = paidStr,
+                        onValueChange = { paidStr = it },
+                        label = { Text("Nominal Dibayar (Rp)") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = paymentMethod,
+                        onValueChange = { paymentMethod = it },
+                        label = { Text("Metode Pembayaran") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = {
+                val dt = try { LocalDate.parse(dateStr).atTime(LocalTime.now()) } catch(e: Exception) { LocalDateTime.now() }
+                val qty = qtyStr.toIntOrNull() ?: 1
+                val diskon = try { BigDecimal(diskonStr) } catch(e: Exception) { BigDecimal.ZERO }
+                val addCost = try { BigDecimal(manualTotalStr) } catch(e: Exception) { BigDecimal.ZERO }
+                val paid = try { BigDecimal(paidStr) } catch(e: Exception) { BigDecimal.ZERO }
+                
+                onSubmit(dt, noFaktur, notes, selectedProductId, qty, diskon, addCost, paid, isPosted, paymentMethod)
+            }) {
+                Text("Simpan")
+            }
+        },
+        dismissButton = {
+            androidx.compose.material3.TextButton(onClick = onDismiss) {
+                Text("Batal")
+            }
+        }
+    )
 }

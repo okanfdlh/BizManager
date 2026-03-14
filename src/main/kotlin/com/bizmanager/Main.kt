@@ -83,7 +83,13 @@ fun App(
                 Screen.PaymentForm -> PaymentFormScreen(selectedId, invoiceRepository, paymentService, { navController.navigate(Screen.PaymentList) })
                 
                 Screen.ReceivableList -> ReceivableListScreen(invoiceRepository, customerRepository)
-                Screen.CustomerLedger -> CustomerLedgerScreen(customerRepository, customerLedgerService)
+                Screen.CustomerLedger -> CustomerLedgerScreen(
+                    customerRepository, 
+                    customerLedgerService,
+                    invoiceService,
+                    paymentService,
+                    productRepository
+                )
                 Screen.ReportPage -> ReportPageScreen(reportService)
                 Screen.SettingsPage -> SettingsScreen(appSettingRepository)
                 Screen.BackupRestore -> BackupRestoreScreen(appSettingRepository)

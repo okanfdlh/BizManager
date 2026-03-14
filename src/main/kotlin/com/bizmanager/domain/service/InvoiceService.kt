@@ -21,13 +21,15 @@ class InvoiceService(
         additionalCost: BigDecimal,
         notes: String?,
         isDraft: Boolean,
-        itemsInput: List<InvoiceItemInput>
+        itemsInput: List<InvoiceItemInput>,
+        customDate: LocalDateTime? = null,
+        customInvoiceNumber: String? = null
     ): Invoice {
-        val today = LocalDateTime.now()
+        val today = customDate ?: LocalDateTime.now()
         
-        // Count today's invoices roughly for sequencing
+        // Count today's invoices roughly for sequencing if custom number is not provided
         val todaysCount = invoiceRepository.findAll().count { it.createdAt.toLocalDate() == today.toLocalDate() }
-        val invoiceNum = documentNumberGenerator.generateInvoiceNumber(todaysCount)
+        val invoiceNum = customInvoiceNumber?.takeIf { it.isNotBlank() } ?: documentNumberGenerator.generateInvoiceNumber(todaysCount)
 
         val processedItems = mutableListOf<InvoiceItem>()
         

@@ -64,10 +64,12 @@ compose.desktop {
                 org.jetbrains.compose.desktop.application.dsl.TargetFormat.Deb
             )
             packageName = "BizManager"
-            packageVersion = "1.0.0"
+            packageVersion = "1.0.1"
             modules("java.sql")
             windows {
                 console = false
+                shortcut = true
+                menuGroup = "BizManager"
             }
             macOS {
                 bundleID = "com.bizmanager.app"

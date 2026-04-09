@@ -23,6 +23,10 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -50,6 +54,7 @@ import com.bizmanager.domain.service.BukuBesarResult
 import com.bizmanager.domain.service.BukuBesarRow
 import com.bizmanager.domain.service.BukuBesarStatus
 import com.bizmanager.domain.service.ReportService
+import com.bizmanager.presentation.ui.DatePickerField
 import com.bizmanager.presentation.ui.toCurrencyLabel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -62,6 +67,9 @@ import java.time.format.DateTimeFormatter
 private val DATE_FMT = DateTimeFormatter.ofPattern("dd.MM.yyyy")
 private val DATE_FMT_SHORT = DateTimeFormatter.ofPattern("dd/MM/yy")
 
+val PAYMENT_TYPES = listOf("Semua", "Transfer Bank", "Cash")
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReportPageScreen(
     reportService: ReportService,
@@ -70,8 +78,8 @@ fun ReportPageScreen(
     val scope = rememberCoroutineScope()
 
     // ── Filter state ─────────────────────────────────────────────────────────
-    var startDateStr by remember { mutableStateOf("") }
-    var endDateStr by remember { mutableStateOf("") }
+    var startDate by remember { mutableStateOf<LocalDate?>(null) }
+    var endDate by remember { mutableStateOf<LocalDate?>(null) }
     var amountStr by remember { mutableStateOf("0") }
     var amountGte by remember { mutableStateOf(true) }  // true = >=, false = <=
     var selectedStatus by remember { mutableStateOf<BukuBesarStatus?>(null) }
@@ -91,14 +99,10 @@ fun ReportPageScreen(
     var customerListType by remember { mutableStateOf("Customer") }  // "Customer" / "Supplier"
 
     fun buildFilter(): BukuBesarFilter {
-        val start = if (startDateStr.isBlank()) null else
-            try { LocalDate.parse(startDateStr).atStartOfDay() } catch (e: Exception) { null }
-        val end = if (endDateStr.isBlank()) null else
-            try { LocalDate.parse(endDateStr).atTime(23, 59, 59) } catch (e: Exception) { null }
         val amount = try { BigDecimal(amountStr) } catch (e: Exception) { null }
         return BukuBesarFilter(
-            startDate = start,
-            endDate = end,
+            startDate = startDate?.atStartOfDay(),
+            endDate = endDate?.atTime(23, 59, 59),
             amountValue = amount,
             amountOperator = if (amountGte) AmountOperator.GTE else AmountOperator.LTE,
             statusAs = selectedStatus,
@@ -127,8 +131,8 @@ fun ReportPageScreen(
     }
 
     fun doReset() {
-        startDateStr = ""
-        endDateStr = ""
+        startDate = null
+        endDate = null
         amountStr = "0"
         amountGte = true
         selectedStatus = null
@@ -188,25 +192,26 @@ fun ReportPageScreen(
                     ) {
                         // Period
                         Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            verticalAlignment = Alignment.Bottom,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Text("Period", modifier = Modifier.width(44.dp), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
-                            Text("from", style = MaterialTheme.typography.bodySmall)
-                            OutlinedTextField(
-                                value = startDateStr,
-                                onValueChange = { startDateStr = it },
-                                placeholder = { Text("yyyy-MM-dd", style = MaterialTheme.typography.bodySmall) },
-                                modifier = Modifier.width(130.dp),
-                                singleLine = true
+                            Text(
+                                "Period",
+                                modifier = Modifier.width(44.dp).padding(bottom = 14.dp),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium
                             )
-                            Text("to", style = MaterialTheme.typography.bodySmall)
-                            OutlinedTextField(
-                                value = endDateStr,
-                                onValueChange = { endDateStr = it },
-                                placeholder = { Text("yyyy-MM-dd", style = MaterialTheme.typography.bodySmall) },
-                                modifier = Modifier.width(130.dp),
-                                singleLine = true
+                            DatePickerField(
+                                label = "from",
+                                date = startDate,
+                                onSelect = { startDate = it },
+                                width = 150.dp
+                            )
+                            DatePickerField(
+                                label = "to",
+                                date = endDate,
+                                onSelect = { endDate = it },
+                                width = 150.dp
                             )
                         }
 
@@ -259,7 +264,7 @@ fun ReportPageScreen(
                             }
                         }
 
-                        // Payment Type
+                        // Payment Type dropdown
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -269,13 +274,35 @@ fun ReportPageScreen(
                                 modifier = Modifier.width(130.dp),
                                 style = MaterialTheme.typography.bodyMedium
                             )
-                            OutlinedTextField(
-                                value = paymentTypeQuery,
-                                onValueChange = { paymentTypeQuery = it },
-                                modifier = Modifier.weight(1f),
-                                singleLine = true,
-                                placeholder = { Text("Transfer Bank, Cash, …", style = MaterialTheme.typography.bodySmall) }
-                            )
+                            var ptExpanded by remember { mutableStateOf(false) }
+                            ExposedDropdownMenuBox(
+                                expanded = ptExpanded,
+                                onExpandedChange = { ptExpanded = !ptExpanded },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                OutlinedTextField(
+                                    value = if (paymentTypeQuery.isBlank()) "Semua" else paymentTypeQuery,
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = ptExpanded) },
+                                    modifier = Modifier.fillMaxWidth().menuAnchor(),
+                                    singleLine = true
+                                )
+                                ExposedDropdownMenu(
+                                    expanded = ptExpanded,
+                                    onDismissRequest = { ptExpanded = false }
+                                ) {
+                                    PAYMENT_TYPES.forEach { opt ->
+                                        DropdownMenuItem(
+                                            text = { Text(opt) },
+                                            onClick = {
+                                                paymentTypeQuery = if (opt == "Semua") "" else opt
+                                                ptExpanded = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
                         }
 
                         // Using data

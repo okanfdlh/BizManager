@@ -79,8 +79,8 @@ fun App(
                 Screen.InvoiceForm -> InvoiceFormScreen(selectedId, invoiceService, customerRepository, productRepository, { navController.navigate(Screen.InvoiceList) })
                 Screen.InvoiceDetail -> InvoiceDetailScreen(selectedId ?: 0, invoiceRepository, customerRepository, paymentRepository, invoiceService, { id -> navController.navigate(Screen.PaymentForm, id) }, { navController.navigate(Screen.InvoiceList) })
                 
-                Screen.PaymentList -> PaymentListScreen(paymentRepository, invoiceRepository)
-                Screen.PaymentForm -> PaymentFormScreen(selectedId, invoiceRepository, paymentService, { navController.navigate(Screen.PaymentList) })
+                Screen.PaymentList -> PaymentListScreen(paymentRepository, invoiceRepository, onNavigateToForm = { navController.navigate(Screen.PaymentForm) })
+                Screen.PaymentForm -> PaymentFormScreen(selectedId, invoiceRepository, paymentService, { navController.navigate(Screen.PaymentList) }, customerRepository)
                 
                 Screen.ReceivableList -> ReceivableListScreen(invoiceRepository, customerRepository)
                 Screen.CustomerReceivableList -> com.bizmanager.presentation.screen.receivable.CustomerReceivableScreen(
@@ -90,11 +90,12 @@ fun App(
                 )
                 Screen.CustomerLedger -> CustomerLedgerScreen(
                     selectedId,
-                    customerRepository, 
+                    customerRepository,
                     customerLedgerService,
                     invoiceService,
                     paymentService,
-                    productRepository
+                    productRepository,
+                    onNavigateToReport = { navController.navigate(Screen.ReportPage) }
                 )
                 Screen.ReportPage -> ReportPageScreen(reportService, customerRepository)
                 Screen.SettingsPage -> SettingsScreen(appSettingRepository)

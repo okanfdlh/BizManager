@@ -30,7 +30,7 @@ class CustomerLedgerService(
                 payments = payments,
                 totalPaid = totalPaid,
                 outstanding = invoice.balanceDue,
-                isSettled = invoice.balanceDue == BigDecimal.ZERO
+                isSettled = invoice.balanceDue.signum() <= 0
             )
         }
 

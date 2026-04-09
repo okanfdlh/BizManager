@@ -19,7 +19,8 @@ class PaymentService(
         amount: BigDecimal,
         paymentMethod: String,
         reference: String?,
-        notes: String?
+        notes: String?,
+        paymentDate: LocalDateTime? = null
     ): Payment {
         val invoice = invoiceRepository.findById(invoiceId)
             ?: throw IllegalArgumentException("Invoice not found")
@@ -38,7 +39,7 @@ class PaymentService(
             throw IllegalArgumentException("Payment amount cannot exceed the balance due of ${invoice.balanceDue}.")
         }
 
-        val today = LocalDateTime.now()
+        val today = paymentDate ?: LocalDateTime.now()
         val todaysCount = paymentRepository.findAll().count { it.createdAt.toLocalDate() == today.toLocalDate() }
         val paymentNum = documentNumberGenerator.generatePaymentNumber(todaysCount)
 

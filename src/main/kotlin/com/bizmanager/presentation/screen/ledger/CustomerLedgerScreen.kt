@@ -88,7 +88,8 @@ fun CustomerLedgerScreen(
     customerLedgerService: CustomerLedgerService,
     invoiceService: InvoiceService,
     paymentService: PaymentService,
-    productRepository: ProductRepository
+    productRepository: ProductRepository,
+    onNavigateToReport: (() -> Unit)? = null
 ) {
     var customers by remember { mutableStateOf<List<Customer>>(emptyList()) }
     var customerIdInput by remember { mutableStateOf("") }
@@ -157,7 +158,18 @@ fun CustomerLedgerScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
-                Text("Buku Besar Customer", style = MaterialTheme.typography.headlineMedium)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Buku Besar Customer", style = MaterialTheme.typography.headlineMedium)
+                    if (onNavigateToReport != null) {
+                        androidx.compose.material3.OutlinedButton(onClick = onNavigateToReport) {
+                            Text("Report Buku Besar")
+                        }
+                    }
+                }
             }
 
             // Frame Customer — sesuai spesifikasi PKE System
@@ -859,12 +871,28 @@ fun QuickFakturDialog(
                         label = { Text("Nominal Dibayar (Rp)") },
                         modifier = Modifier.fillMaxWidth()
                     )
-                    OutlinedTextField(
-                        value = paymentMethod,
-                        onValueChange = { paymentMethod = it },
-                        label = { Text("Metode Pembayaran") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    var pmExp1 by remember { mutableStateOf(false) }
+                    ExposedDropdownMenuBox(
+                        expanded = pmExp1,
+                        onExpandedChange = { pmExp1 = !pmExp1 }
+                    ) {
+                        OutlinedTextField(
+                            value = paymentMethod,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Metode Pembayaran") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = pmExp1) },
+                            modifier = Modifier.fillMaxWidth().menuAnchor()
+                        )
+                        ExposedDropdownMenu(expanded = pmExp1, onDismissRequest = { pmExp1 = false }) {
+                            listOf("Transfer Bank", "Cash").forEach { opt ->
+                                DropdownMenuItem(
+                                    text = { Text(opt) },
+                                    onClick = { paymentMethod = opt; pmExp1 = false }
+                                )
+                            }
+                        }
+                    }
                 }
             }
         },
@@ -963,12 +991,28 @@ fun QuickPaymentDialog(
                         label = { Text("Nominal Dibayar (Rp)") },
                         modifier = Modifier.fillMaxWidth()
                     )
-                    OutlinedTextField(
-                        value = paymentMethod,
-                        onValueChange = { paymentMethod = it },
-                        label = { Text("Metode Pembayaran") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    var pmExp2 by remember { mutableStateOf(false) }
+                    ExposedDropdownMenuBox(
+                        expanded = pmExp2,
+                        onExpandedChange = { pmExp2 = !pmExp2 }
+                    ) {
+                        OutlinedTextField(
+                            value = paymentMethod,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Metode Pembayaran") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = pmExp2) },
+                            modifier = Modifier.fillMaxWidth().menuAnchor()
+                        )
+                        ExposedDropdownMenu(expanded = pmExp2, onDismissRequest = { pmExp2 = false }) {
+                            listOf("Transfer Bank", "Cash").forEach { opt ->
+                                DropdownMenuItem(
+                                    text = { Text(opt) },
+                                    onClick = { paymentMethod = opt; pmExp2 = false }
+                                )
+                            }
+                        }
+                    }
                 }
             }
         },

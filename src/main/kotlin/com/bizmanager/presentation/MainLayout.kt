@@ -4,9 +4,6 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.hoverable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -48,9 +45,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.unit.dp
 import com.bizmanager.presentation.navigation.NavigationState
 import com.bizmanager.presentation.navigation.Screen
@@ -213,6 +213,7 @@ private fun SidebarSection(title: String) {
     )
 }
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun SidebarItem(
     title: String,
@@ -221,8 +222,7 @@ private fun SidebarItem(
     collapsed: Boolean,
     onClick: () -> Unit
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isHovered by interactionSource.collectIsHoveredAsState()
+    var isHovered by remember { mutableStateOf(false) }
 
     val targetContainerColor = when {
         isSelected && isHovered -> MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
@@ -240,16 +240,14 @@ private fun SidebarItem(
         isHovered -> MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
         else -> MaterialTheme.colorScheme.surface
     }
-    val horizontalPadding by animateDpAsState(
-        when {
-            collapsed -> 12.dp
-            isHovered && !isSelected -> 16.dp
-            else -> 14.dp
-        }
-    )
+
     val containerColor by animateColorAsState(targetContainerColor)
     val contentColor by animateColorAsState(targetContentColor)
     val indicatorColor by animateColorAsState(targetIndicatorColor)
+
+    val hoverModifier = Modifier
+        .onPointerEvent(PointerEventType.Enter) { isHovered = true }
+        .onPointerEvent(PointerEventType.Exit) { isHovered = false }
 
     if (collapsed) {
         Box(
@@ -257,14 +255,10 @@ private fun SidebarItem(
                 .fillMaxWidth()
                 .padding(vertical = 3.dp)
                 .clip(RoundedCornerShape(18.dp))
-                .hoverable(interactionSource = interactionSource)
-                .clickable(
-                    interactionSource = interactionSource,
-                    indication = null,
-                    onClick = onClick
-                )
+                .then(hoverModifier)
+                .clickable(onClick = onClick)
                 .background(containerColor, RoundedCornerShape(18.dp))
-                .padding(horizontal = horizontalPadding, vertical = 12.dp),
+                .padding(horizontal = 12.dp, vertical = 12.dp),
             contentAlignment = Alignment.Center
         ) {
             Box(
@@ -286,14 +280,10 @@ private fun SidebarItem(
                 .fillMaxWidth()
                 .padding(vertical = 3.dp)
                 .clip(RoundedCornerShape(18.dp))
-                .hoverable(interactionSource = interactionSource)
-                .clickable(
-                    interactionSource = interactionSource,
-                    indication = null,
-                    onClick = onClick
-                )
+                .then(hoverModifier)
+                .clickable(onClick = onClick)
                 .background(containerColor, RoundedCornerShape(18.dp))
-                .padding(horizontal = horizontalPadding, vertical = 12.dp),
+                .padding(horizontal = 14.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {

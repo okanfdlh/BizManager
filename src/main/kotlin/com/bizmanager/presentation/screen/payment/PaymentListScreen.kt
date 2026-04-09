@@ -19,7 +19,8 @@ import kotlin.math.ceil
 @Composable
 fun PaymentListScreen(
     paymentRepository: PaymentRepository,
-    invoiceRepository: InvoiceRepository
+    invoiceRepository: InvoiceRepository,
+    onNavigateToForm: () -> Unit
 ) {
     var payments by remember { mutableStateOf(emptyList<Payment>()) }
     var invoiceMap by remember { mutableStateOf(emptyMap<Int, String>()) }
@@ -80,6 +81,9 @@ fun PaymentListScreen(
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Text("Daftar Pembayaran Masuk", style = MaterialTheme.typography.h4)
+            Button(onClick = onNavigateToForm) {
+                Text("+ Terima Pembayaran")
+            }
         }
         Spacer(Modifier.height(16.dp))
 

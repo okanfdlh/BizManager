@@ -36,7 +36,8 @@ fun InvoiceFormScreen(
     var dueDate by remember { mutableStateOf(LocalDateTime.now().plusDays(30)) }
     var additionalCostStr by remember { mutableStateOf("0") }
     var notes by remember { mutableStateOf("") }
-    
+    var manualTotalStr by remember { mutableStateOf("0") }
+
     // UI state for items
     val items = remember { mutableStateListOf<UiInvoiceItem>() }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -54,11 +55,11 @@ fun InvoiceFormScreen(
             Row {
                 Button(onClick = onBack, colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.secondary)) { Text("Batal") }
                 Spacer(Modifier.width(8.dp))
-                Button(onClick = { saveInvoice(invoiceId, true, selectedCustomerId, dueDate, additionalCostStr, notes, items, invoiceService, onBack, { errorMessage = it }) }) {
+                Button(onClick = { saveInvoice(invoiceId, true, selectedCustomerId, dueDate, additionalCostStr, notes, manualTotalStr, items, invoiceService, onBack, { errorMessage = it }) }) {
                     Text("Post Faktur (Kunci)")
                 }
                 Spacer(Modifier.width(8.dp))
-                Button(onClick = { saveInvoice(invoiceId, false, selectedCustomerId, dueDate, additionalCostStr, notes, items, invoiceService, onBack, { errorMessage = it }) }) {
+                Button(onClick = { saveInvoice(invoiceId, false, selectedCustomerId, dueDate, additionalCostStr, notes, manualTotalStr, items, invoiceService, onBack, { errorMessage = it }) }) {
                     Text("Simpan Draft")
                 }
             }
@@ -105,11 +106,21 @@ fun InvoiceFormScreen(
         }
         Spacer(Modifier.height(8.dp))
         OutlinedTextField(value = notes, onValueChange = { notes = it }, label = { Text("Catatan") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
-        
+        Spacer(Modifier.height(8.dp))
+        OutlinedTextField(
+            value = manualTotalStr,
+            onValueChange = { manualTotalStr = it },
+            label = { Text("Total Manual (Rp) — digunakan jika tidak ada item produk") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
         Spacer(Modifier.height(24.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text("Item Faktur", style = MaterialTheme.typography.h6)
-            Button(onClick = { items.add(UiInvoiceItem(null, "1", "0")) }) { 
+            Column {
+                Text("Item Produk (Opsional)", style = MaterialTheme.typography.h6)
+                Text("Kosongkan jika nominal diisi manual di atas.", style = MaterialTheme.typography.caption)
+            }
+            Button(onClick = { items.add(UiInvoiceItem(null, "1", "0")) }) {
                 Icon(Icons.Default.Add, contentDescription = "Tambah Item")
                 Spacer(Modifier.width(4.dp))
                 Text("Tambah Item") 
@@ -122,15 +133,19 @@ fun InvoiceFormScreen(
                 Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                     var prodDropdownExpanded by remember { mutableStateOf(false) }
                     Box(modifier = Modifier.weight(2f)) {
-                        val prodName = products.find { it.id == item.productId }?.name ?: "Pilih Produk"
+                        val prodName = products.find { it.id == item.productId }?.name ?: "Pilih Produk (Opsional)"
                         OutlinedButton(onClick = { prodDropdownExpanded = true }, modifier = Modifier.fillMaxWidth()) {
                             Text(prodName)
                         }
                         DropdownMenu(expanded = prodDropdownExpanded, onDismissRequest = { prodDropdownExpanded = false }) {
+                            DropdownMenuItem(onClick = {
+                                items[index] = item.copy(productId = null)
+                                prodDropdownExpanded = false
+                            }) { Text("— Tanpa Produk —") }
                             products.forEach { p ->
-                                DropdownMenuItem(onClick = { 
+                                DropdownMenuItem(onClick = {
                                     items[index] = item.copy(productId = p.id)
-                                    prodDropdownExpanded = false 
+                                    prodDropdownExpanded = false
                                 }) { Text("${p.code} - ${p.name}") }
                             }
                         }
@@ -172,6 +187,7 @@ private fun saveInvoice(
     dueDate: LocalDateTime,
     additionalCostStr: String,
     notes: String,
+    manualTotalStr: String,
     uiItems: List<UiInvoiceItem>,
     invoiceService: InvoiceService,
     onSuccess: () -> Unit,
@@ -181,24 +197,23 @@ private fun saveInvoice(
         onError("Pilih customer terlebih dahulu.")
         return
     }
-    if (uiItems.isEmpty()) {
-        onError("Faktur minimal harus memiliki 1 item.")
-        return
-    }
-    if (uiItems.any { it.productId == null }) {
-        onError("Pastikan semua item sudah memilih produk.")
-        return
-    }
 
     try {
         val addCost = if (additionalCostStr.isBlank()) BigDecimal.ZERO else BigDecimal(additionalCostStr)
-        val inputs = uiItems.map { 
-            InvoiceItemInput(
-                productId = it.productId!!,
-                qty = it.qtyStr.toIntOrNull() ?: 1,
-                discount = if (it.discountStr.isBlank()) BigDecimal.ZERO else BigDecimal(it.discountStr)
-            )
-        }
+        // Hanya sertakan item yang sudah memilih produk
+        val inputs = uiItems
+            .filter { it.productId != null }
+            .map {
+                InvoiceItemInput(
+                    productId = it.productId!!,
+                    qty = it.qtyStr.toIntOrNull() ?: 1,
+                    discount = if (it.discountStr.isBlank()) BigDecimal.ZERO else BigDecimal(it.discountStr)
+                )
+            }
+        // manualTotal dipakai jika tidak ada item produk
+        val manualTotal = if (inputs.isEmpty()) {
+            try { BigDecimal(manualTotalStr).takeIf { it.signum() > 0 } } catch (e: Exception) { null }
+        } else null
 
         if (invoiceId == null) {
             invoiceService.createInvoice(
@@ -207,7 +222,8 @@ private fun saveInvoice(
                 additionalCost = addCost,
                 notes = notes.ifBlank { null },
                 isDraft = !isPosted,
-                itemsInput = inputs
+                itemsInput = inputs,
+                manualTotal = manualTotal
             )
         } else {
             invoiceService.updateDraftInvoice(
@@ -216,7 +232,8 @@ private fun saveInvoice(
                 additionalCost = addCost,
                 notes = notes.ifBlank { null },
                 postInvoice = isPosted,
-                itemsInput = inputs
+                itemsInput = inputs,
+                manualTotal = manualTotal
             )
         }
         onSuccess()

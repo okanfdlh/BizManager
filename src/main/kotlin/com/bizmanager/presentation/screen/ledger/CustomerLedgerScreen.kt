@@ -1,5 +1,7 @@
 package com.bizmanager.presentation.screen.ledger
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -7,20 +9,29 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -30,9 +41,11 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -46,30 +59,26 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.bizmanager.data.repository.CustomerRepository
+import com.bizmanager.data.repository.ProductRepository
 import com.bizmanager.domain.model.Customer
+import com.bizmanager.domain.model.Invoice
+import com.bizmanager.domain.model.Product
 import com.bizmanager.domain.service.CustomerLedgerInvoice
 import com.bizmanager.domain.service.CustomerLedgerReport
 import com.bizmanager.domain.service.CustomerLedgerService
+import com.bizmanager.domain.service.InvoiceItemInput
+import com.bizmanager.domain.service.InvoiceService
+import com.bizmanager.domain.service.PaymentService
 import com.bizmanager.presentation.ui.toCurrencyLabel
 import com.bizmanager.presentation.ui.toDateLabel
 import com.bizmanager.presentation.ui.toDateTimeLabel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-
-import com.bizmanager.domain.model.Invoice
-import com.bizmanager.domain.service.InvoiceService
-import com.bizmanager.domain.service.PaymentService
-import com.bizmanager.data.repository.ProductRepository
-import com.bizmanager.domain.model.Product
-import com.bizmanager.domain.service.InvoiceItemInput
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
-import java.time.LocalDate
-import java.time.LocalTime
 import java.math.BigDecimal
-import androidx.compose.material3.AlertDialog
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -82,13 +91,14 @@ fun CustomerLedgerScreen(
     productRepository: ProductRepository
 ) {
     var customers by remember { mutableStateOf<List<Customer>>(emptyList()) }
-    var query by remember { mutableStateOf("") }
-    var expanded by remember { mutableStateOf(false) }
+    var customerIdInput by remember { mutableStateOf("") }
+    var customerNameInput by remember { mutableStateOf("") }
     var selectedCustomer by remember { mutableStateOf<Customer?>(null) }
+    var showCustomerList by remember { mutableStateOf(false) }
     var ledgerReport by remember { mutableStateOf<CustomerLedgerReport?>(null) }
     var loading by remember { mutableStateOf(false) }
     val expandedInvoices = remember { mutableStateMapOf<Int, Boolean>() }
-    
+
     var showQuickFakturDialog by remember { mutableStateOf(false) }
     var showQuickPaymentDialog by remember { mutableStateOf(false) }
     var productsList by remember { mutableStateOf<List<Product>>(emptyList()) }
@@ -99,8 +109,12 @@ fun CustomerLedgerScreen(
             customerRepository.findAll(includeInactive = true)
         }
         if (initialCustomerId != null) {
-            selectedCustomer = customers.find { it.id == initialCustomerId }
-            selectedCustomer?.let { query = it.name }
+            val initial = customers.find { it.id == initialCustomerId }
+            if (initial != null) {
+                selectedCustomer = initial
+                customerIdInput = initial.code
+                customerNameInput = initial.name
+            }
         }
         productsList = withContext(Dispatchers.IO) {
             productRepository.findAll(includeInactive = false)
@@ -112,7 +126,6 @@ fun CustomerLedgerScreen(
             ledgerReport = null
             return@LaunchedEffect
         }
-
         loading = true
         ledgerReport = withContext(Dispatchers.IO) {
             customerLedgerService.getCustomerLedger(customer.id)
@@ -120,129 +133,122 @@ fun CustomerLedgerScreen(
         loading = false
     }
 
-    val filteredCustomers = customers.filter { customer ->
-        query.isBlank() ||
-            customer.name.contains(query, ignoreCase = true) ||
-            customer.code.contains(query, ignoreCase = true) ||
-            (customer.company?.contains(query, ignoreCase = true) == true)
+    fun handleFind() {
+        val idQuery = customerIdInput.trim()
+        val nameQuery = customerNameInput.trim()
+        if (idQuery.isBlank() && nameQuery.isBlank()) return
+        val match = customers.find { c ->
+            (idQuery.isNotBlank() && (c.code.equals(idQuery, ignoreCase = true) || c.name.contains(idQuery, ignoreCase = true))) ||
+            (nameQuery.isNotBlank() && c.name.contains(nameQuery, ignoreCase = true))
+        }
+        if (match != null) {
+            selectedCustomer = match
+            customerIdInput = match.code
+            customerNameInput = match.name
+        }
     }
 
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        item {
-            Text("Buku Besar Customer", style = MaterialTheme.typography.headlineMedium)
-        }
+    Row(modifier = Modifier.fillMaxSize()) {
+        // Left panel: main content
+        LazyColumn(
+            modifier = Modifier
+                .weight(1f)
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            item {
+                Text("Buku Besar Customer", style = MaterialTheme.typography.headlineMedium)
+            }
 
-        item {
-            Text(
-                "Cari customer, pilih dari dropdown, lalu review semua faktur, item produk, histori pembayaran, dan posisi hutang per faktur.",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-
-        item {
-            ExposedDropdownMenuBox(
-                expanded = expanded,
-                onExpandedChange = { expanded = !expanded }
-            ) {
-                OutlinedTextField(
-                    value = query,
-                    onValueChange = {
-                        query = it
-                        expanded = true
-                    },
-                    label = { Text("Cari customer / company / kode") },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                    modifier = Modifier.fillMaxWidth().menuAnchor()
+            // Frame Customer — sesuai spesifikasi PKE System
+            item {
+                CustomerFrame(
+                    customerIdInput = customerIdInput,
+                    customerNameInput = customerNameInput,
+                    showCustomerList = showCustomerList,
+                    onCustomerIdChange = { customerIdInput = it },
+                    onCustomerNameChange = { customerNameInput = it },
+                    onFind = { handleFind() },
+                    onToggleList = { showCustomerList = !showCustomerList }
                 )
+            }
 
-                ExposedDropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false }
-                ) {
-                    filteredCustomers.forEach { customer ->
-                        DropdownMenuItem(
-                            text = {
-                                Column {
-                                    Text(customer.name, fontWeight = FontWeight.SemiBold)
-                                    Text(
-                                        listOfNotNull(customer.code, customer.company).joinToString(" • "),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            },
-                            onClick = {
-                                selectedCustomer = customer
-                                query = customer.name
-                                expanded = false
+            when {
+                loading -> {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 48.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
+                        }
+                    }
+                }
+
+                ledgerReport == null -> {
+                    item {
+                        Surface(
+                            color = MaterialTheme.colorScheme.surface,
+                            tonalElevation = 4.dp,
+                            shape = RoundedCornerShape(24.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(28.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Text("Belum ada customer yang dipilih.", style = MaterialTheme.typography.titleLarge)
+                                Text(
+                                    "Masukan Customer ID atau Nama lalu klik Find, atau klik List Customer untuk memilih dari daftar.",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
+                        }
+                    }
+                }
+
+                else -> {
+                    val report = ledgerReport!!
+                    item {
+                        LedgerSummary(
+                            report = report,
+                            onQuickInput = { showQuickFakturDialog = true },
+                            onQuickPayment = { showQuickPaymentDialog = true }
+                        )
+                    }
+                    items(report.invoices, key = { it.invoice.id }) { entry ->
+                        val isExpanded = expandedInvoices[entry.invoice.id] ?: false
+                        InvoiceLedgerCard(
+                            entry = entry,
+                            expanded = isExpanded,
+                            onToggle = { expandedInvoices[entry.invoice.id] = !isExpanded }
                         )
                     }
                 }
             }
         }
 
-        when {
-            loading -> {
-                item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 48.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator()
-                    }
+        // Right panel: Customer / Supplier list table
+        if (showCustomerList) {
+            CustomerListTable(
+                customers = customers,
+                selectedCustomer = selectedCustomer,
+                modifier = Modifier
+                    .width(360.dp)
+                    .fillMaxHeight(),
+                onSelect = { customer ->
+                    selectedCustomer = customer
+                    customerIdInput = customer.code
+                    customerNameInput = customer.name
                 }
-            }
-
-            ledgerReport == null -> {
-                item {
-                    Surface(
-                        color = MaterialTheme.colorScheme.surface,
-                        tonalElevation = 4.dp,
-                        shape = androidx.compose.foundation.shape.RoundedCornerShape(24.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(28.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            Text("Belum ada customer yang dipilih.", style = MaterialTheme.typography.titleLarge)
-                            Text("Gunakan search di atas untuk memilih customer dan memunculkan ledger lengkap.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-                }
-            }
-
-            else -> {
-                val report = ledgerReport!!
-                item {
-                    LedgerSummary(
-                        report = report,
-                        onQuickInput = { showQuickFakturDialog = true },
-                        onQuickPayment = { showQuickPaymentDialog = true }
-                    )
-                }
-                items(report.invoices, key = { it.invoice.id }) { entry ->
-                    val isExpanded = expandedInvoices[entry.invoice.id] ?: false
-                    InvoiceLedgerCard(
-                        entry = entry,
-                        expanded = isExpanded,
-                        onToggle = { expandedInvoices[entry.invoice.id] = !isExpanded }
-                    )
-                }
-            }
+            )
         }
     }
-    
+
+    // Dialogs
     if (showQuickFakturDialog && selectedCustomer != null) {
         QuickFakturDialog(
             customer = selectedCustomer!!,
@@ -261,7 +267,6 @@ fun CustomerLedgerScreen(
                         customInvoiceNumber = noFaktur.ifBlank { null },
                         manualTotal = manualTotal
                     )
-                    
                     if (isPosted && paid > BigDecimal.ZERO) {
                         paymentService.addPayment(
                             invoiceId = inv.id,
@@ -305,6 +310,180 @@ fun CustomerLedgerScreen(
     }
 }
 
+// ─── Frame Customer ────────────────────────────────────────────────────────────
+
+@Composable
+private fun CustomerFrame(
+    customerIdInput: String,
+    customerNameInput: String,
+    showCustomerList: Boolean,
+    onCustomerIdChange: (String) -> Unit,
+    onCustomerNameChange: (String) -> Unit,
+    onFind: () -> Unit,
+    onToggleList: () -> Unit
+) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                "Customer",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.SemiBold
+            )
+
+            // Baris Customer ID
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Customer ID",
+                    modifier = Modifier.width(120.dp),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                OutlinedTextField(
+                    value = customerIdInput,
+                    onValueChange = onCustomerIdChange,
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    placeholder = { Text("Masukan Customer ID") }
+                )
+                Button(onClick = onFind) {
+                    Text("Find")
+                }
+                OutlinedButton(onClick = onToggleList) {
+                    Text(if (showCustomerList) "Close List" else "List Customer")
+                }
+            }
+
+            // Baris Customer Name
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Customer Name",
+                    modifier = Modifier.width(120.dp),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                OutlinedTextField(
+                    value = customerNameInput,
+                    onValueChange = onCustomerNameChange,
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    placeholder = { Text("Nama customer") }
+                )
+            }
+        }
+    }
+}
+
+// ─── Tabel Customer / Supplier (panel kanan) ───────────────────────────────────
+
+@Composable
+private fun CustomerListTable(
+    customers: List<Customer>,
+    selectedCustomer: Customer?,
+    modifier: Modifier = Modifier,
+    onSelect: (Customer) -> Unit
+) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+        shape = RoundedCornerShape(0.dp)
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            // Header tabel
+            Surface(color = MaterialTheme.colorScheme.primaryContainer) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "Nr.",
+                        modifier = Modifier.width(32.dp),
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.labelMedium
+                    )
+                    Text(
+                        "Cust/Supplier ID",
+                        modifier = Modifier.width(108.dp),
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.labelMedium
+                    )
+                    Text(
+                        "Cust/Supplier Name",
+                        modifier = Modifier.weight(1f),
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.labelMedium
+                    )
+                }
+            }
+            HorizontalDivider()
+
+            // Baris data
+            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                itemsIndexed(customers) { index, customer ->
+                    val isSelected = selectedCustomer?.id == customer.id
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                when {
+                                    isSelected -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.75f)
+                                    index % 2 == 0 -> MaterialTheme.colorScheme.surface
+                                    else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                                }
+                            )
+                            .clickable { onSelect(customer) }
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "${index + 1}",
+                            modifier = Modifier.width(32.dp),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        Text(
+                            customer.code,
+                            modifier = Modifier.width(108.dp),
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                        )
+                        Text(
+                            customer.name,
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                        )
+                    }
+                    HorizontalDivider(
+                        thickness = 0.5.dp,
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ─── Ringkasan Ledger ──────────────────────────────────────────────────────────
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun LedgerSummary(report: CustomerLedgerReport, onQuickInput: () -> Unit, onQuickPayment: () -> Unit) {
@@ -318,7 +497,11 @@ private fun LedgerSummary(report: CustomerLedgerReport, onQuickInput: () -> Unit
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(report.customer.name, style = MaterialTheme.typography.headlineSmall)
                     Text(
@@ -332,7 +515,7 @@ private fun LedgerSummary(report: CustomerLedgerReport, onQuickInput: () -> Unit
                     }
                     Button(
                         onClick = onQuickPayment,
-                        colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
                     ) {
                         Text("Terima Pembayaran")
                     }
@@ -361,7 +544,7 @@ private fun LedgerSummary(report: CustomerLedgerReport, onQuickInput: () -> Unit
 private fun SummaryMiniCard(title: String, value: String) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(18.dp)
+        shape = RoundedCornerShape(18.dp)
     ) {
         Column(
             modifier = Modifier
@@ -374,6 +557,8 @@ private fun SummaryMiniCard(title: String, value: String) {
         }
     }
 }
+
+// ─── Kartu Invoice Ledger ──────────────────────────────────────────────────────
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -448,10 +633,12 @@ private fun InvoiceLedgerCard(
                         entry.items.forEach { item ->
                             Surface(
                                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-                                shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
+                                shape = RoundedCornerShape(16.dp)
                             ) {
                                 Row(
-                                    modifier = Modifier.fillMaxWidth().padding(14.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(14.dp),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
@@ -462,7 +649,10 @@ private fun InvoiceLedgerCard(
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
-                                    Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Column(
+                                        horizontalAlignment = Alignment.End,
+                                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
                                         Text(item.subtotal.toCurrencyLabel(), fontWeight = FontWeight.SemiBold)
                                         Text("Profit ${item.grossProfit.toCurrencyLabel()}", color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
@@ -476,9 +666,13 @@ private fun InvoiceLedgerCard(
                     Text("Riwayat transaksi", style = MaterialTheme.typography.titleMedium)
                     Surface(
                         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.06f),
-                        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
+                        shape = RoundedCornerShape(16.dp)
                     ) {
-                        Column(modifier = Modifier.fillMaxWidth().padding(14.dp)) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(14.dp)
+                        ) {
                             Text("Faktur dibuat", fontWeight = FontWeight.SemiBold)
                             Text(entry.invoice.date.toDateTimeLabel(), color = MaterialTheme.colorScheme.onSurfaceVariant)
                             if (!entry.invoice.notes.isNullOrBlank()) {
@@ -493,10 +687,12 @@ private fun InvoiceLedgerCard(
                         entry.payments.forEach { payment ->
                             Surface(
                                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-                                shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
+                                shape = RoundedCornerShape(16.dp)
                             ) {
                                 Row(
-                                    modifier = Modifier.fillMaxWidth().padding(14.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(14.dp),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
@@ -523,6 +719,8 @@ private fun InvoiceLedgerCard(
         }
     }
 }
+
+// ─── Dialog Quick Input Faktur ─────────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -587,9 +785,9 @@ fun QuickFakturDialog(
                     label = { Text("Deskripsi / Catatan") },
                     modifier = Modifier.fillMaxWidth()
                 )
-                
+
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                
+
                 ExposedDropdownMenuBox(
                     expanded = prodDropdownExpanded,
                     onExpandedChange = { prodDropdownExpanded = !prodDropdownExpanded }
@@ -643,17 +841,17 @@ fun QuickFakturDialog(
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
-                
+
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                
+
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    androidx.compose.material3.Checkbox(
+                    Checkbox(
                         checked = isPosted,
                         onCheckedChange = { isPosted = it }
                     )
                     Text("Post Faktur (Kunci dokumen & aktifkan bayar)")
                 }
-                
+
                 if (isPosted) {
                     OutlinedTextField(
                         value = paidStr,
@@ -672,25 +870,25 @@ fun QuickFakturDialog(
         },
         confirmButton = {
             Button(onClick = {
-                val dt = try { LocalDate.parse(dateStr).atTime(LocalTime.now()) } catch(e: Exception) { LocalDateTime.now() }
+                val dt = try { LocalDate.parse(dateStr).atTime(LocalTime.now()) } catch (e: Exception) { LocalDateTime.now() }
                 val qty = qtyStr.toIntOrNull() ?: 1
-                val diskon = try { BigDecimal(diskonStr) } catch(e: Exception) { BigDecimal.ZERO }
-                val manualTotal = try { BigDecimal(manualTotalStr) } catch(e: Exception) { BigDecimal.ZERO }
-                val paid = try { BigDecimal(paidStr) } catch(e: Exception) { BigDecimal.ZERO }
-                
+                val diskon = try { BigDecimal(diskonStr) } catch (e: Exception) { BigDecimal.ZERO }
+                val manualTotal = try { BigDecimal(manualTotalStr) } catch (e: Exception) { BigDecimal.ZERO }
+                val paid = try { BigDecimal(paidStr) } catch (e: Exception) { BigDecimal.ZERO }
                 onSubmit(dt, noFaktur, notes, selectedProductId, qty, diskon, manualTotal, paid, isPosted, paymentMethod)
             }) {
                 Text("Simpan")
             }
         },
         dismissButton = {
-            androidx.compose.material3.TextButton(onClick = onDismiss) {
+            TextButton(onClick = onDismiss) {
                 Text("Batal")
             }
         }
     )
-    )
 }
+
+// ─── Dialog Quick Terima Pembayaran ───────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -702,7 +900,7 @@ fun QuickPaymentDialog(
 ) {
     var selectedInvoiceId by remember { mutableStateOf<Int?>(openInvoices.firstOrNull()?.id) }
     var invDropdownExpanded by remember { mutableStateOf(false) }
-    
+
     var nominalStr by remember { mutableStateOf("") }
     var paymentMethod by remember { mutableStateOf("Transfer Bank") }
 
@@ -721,14 +919,18 @@ fun QuickPaymentDialog(
                 Text("Tidak ada faktur yang belum lunas (outstanding) untuk customer ini.")
             } else {
                 Column(
-                    modifier = Modifier.fillMaxWidth().padding(8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     ExposedDropdownMenuBox(
                         expanded = invDropdownExpanded,
                         onExpandedChange = { invDropdownExpanded = !invDropdownExpanded }
                     ) {
-                        val invName = openInvoices.find { it.id == selectedInvoiceId }?.let { "${it.invoiceNumber} (Sisa: ${it.balanceDue.toCurrencyLabel()})" } ?: "Pilih Faktur"
+                        val invName = openInvoices.find { it.id == selectedInvoiceId }
+                            ?.let { "${it.invoiceNumber} (Sisa: ${it.balanceDue.toCurrencyLabel()})" }
+                            ?: "Pilih Faktur"
                         OutlinedTextField(
                             value = invName,
                             onValueChange = {},
@@ -745,10 +947,10 @@ fun QuickPaymentDialog(
                             openInvoices.forEach { inv ->
                                 DropdownMenuItem(
                                     text = { Text("${inv.invoiceNumber} - Sisa: ${inv.balanceDue.toCurrencyLabel()}") },
-                                    onClick = { 
+                                    onClick = {
                                         selectedInvoiceId = inv.id
                                         nominalStr = inv.balanceDue.toPlainString()
-                                        invDropdownExpanded = false 
+                                        invDropdownExpanded = false
                                     }
                                 )
                             }
@@ -773,7 +975,7 @@ fun QuickPaymentDialog(
         confirmButton = {
             if (openInvoices.isNotEmpty()) {
                 Button(onClick = {
-                    val nominal = try { BigDecimal(nominalStr) } catch(e: Exception) { BigDecimal.ZERO }
+                    val nominal = try { BigDecimal(nominalStr) } catch (e: Exception) { BigDecimal.ZERO }
                     if (selectedInvoiceId != null && nominal > BigDecimal.ZERO) {
                         onSubmit(selectedInvoiceId!!, nominal, paymentMethod)
                     }
@@ -783,10 +985,9 @@ fun QuickPaymentDialog(
             }
         },
         dismissButton = {
-            androidx.compose.material3.TextButton(onClick = onDismiss) {
+            TextButton(onClick = onDismiss) {
                 Text(if (openInvoices.isEmpty()) "Tutup" else "Batal")
             }
         }
     )
 }
-

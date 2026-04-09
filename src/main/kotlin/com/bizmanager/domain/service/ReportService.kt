@@ -15,9 +15,11 @@ import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.math.BigDecimal
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 import java.util.Locale
 
 class ReportService {
@@ -226,6 +228,125 @@ class ReportService {
         )
     }
 
+    // ─── Report Buku Besar ─────────────────────────────────────────────────────
+
+    fun getBukuBesarReport(filter: BukuBesarFilter, page: Int = 1): BukuBesarResult = transaction {
+        val PAGE_SIZE = 50
+        val today = LocalDate.now()
+
+        // Load all data (in-memory filter for flexibility)
+        val invoiceRows = Invoices.selectAll().toList()
+        val customerMap = Customers.selectAll().associate { row ->
+            row[Customers.id].value to Triple(
+                row[Customers.code],
+                row[Customers.name],
+                row[Customers.company]
+            )
+        }
+        val allPayments = Payments.selectAll().toList()
+        val latestPaymentByInvoice = allPayments
+            .groupBy { it[Payments.invoiceId].value }
+            .mapValues { (_, payments) -> payments.maxByOrNull { it[Payments.date] } }
+
+        val allRows = invoiceRows.mapNotNull { row ->
+            val invoiceId = row[Invoices.id].value
+            val customerId = row[Invoices.customerId].value
+            val customerTriple = customerMap[customerId] ?: return@mapNotNull null
+            val (customerCode, customerName, _) = customerTriple
+
+            val invoiceDate = row[Invoices.date]
+            val grandTotal = row[Invoices.grandTotal]
+            val balanceDue = row[Invoices.balanceDue]
+            val daysOld = ChronoUnit.DAYS.between(invoiceDate.toLocalDate(), today)
+            val latestPayment = latestPaymentByInvoice[invoiceId]
+            val paymentType = latestPayment?.get(Payments.paymentMethod)
+
+            // Period filter
+            filter.startDate?.let { if (invoiceDate < it) return@mapNotNull null }
+            filter.endDate?.let { if (invoiceDate > it) return@mapNotNull null }
+
+            // Amount filter (only when amount > 0)
+            filter.amountValue?.let { amt ->
+                if (amt.signum() > 0) {
+                    when (filter.amountOperator) {
+                        AmountOperator.GTE -> if (grandTotal < amt) return@mapNotNull null
+                        AmountOperator.LTE -> if (grandTotal > amt) return@mapNotNull null
+                    }
+                }
+            }
+
+            // Customer ID/Name filter
+            if (filter.customerQuery.isNotBlank()) {
+                val q = filter.customerQuery.lowercase()
+                if (!customerCode.lowercase().contains(q) && !customerName.lowercase().contains(q)) {
+                    return@mapNotNull null
+                }
+            }
+
+            // Aging/status classification
+            val agingStatus = when {
+                balanceDue.signum() == 0 -> "Closed"
+                daysOld <= 30 -> "New"
+                daysOld <= 90 -> "Outstanding"
+                else -> "Unpaid"
+            }
+
+            // Status filter
+            val passesStatus = when (filter.statusAs) {
+                BukuBesarStatus.Closed -> balanceDue.signum() == 0
+                BukuBesarStatus.New -> daysOld <= 30
+                BukuBesarStatus.Outstanding -> daysOld > 30 && daysOld <= 90
+                BukuBesarStatus.Unpaid -> daysOld > 90
+                BukuBesarStatus.AllOutstanding -> balanceDue.signum() > 0
+                null -> true
+            }
+            if (!passesStatus) return@mapNotNull null
+
+            // Payment type filter
+            if (filter.paymentType.isNotBlank()) {
+                if (paymentType == null || !paymentType.contains(filter.paymentType, ignoreCase = true)) {
+                    return@mapNotNull null
+                }
+            }
+
+            BukuBesarRow(
+                customerCode = customerCode,
+                customerName = customerName,
+                fakturNr = row[Invoices.invoiceNumber],
+                fakturDate = invoiceDate,
+                agingStatus = agingStatus,
+                description = row[Invoices.notes],
+                paidDate = latestPayment?.get(Payments.date),
+                paid = row[Invoices.totalPaid],
+                outstanding = balanceDue,
+                total = grandTotal,
+                paymentType = paymentType,
+                margin = row[Invoices.netProfit]
+            )
+        }.sortedWith(compareBy({ it.customerCode }, { it.fakturDate }))
+
+        val foundCount = allRows.size
+        val totalMargin = allRows.fold(BigDecimal.ZERO) { acc, r -> acc.add(r.margin) }
+        val totalPaid = allRows.fold(BigDecimal.ZERO) { acc, r -> acc.add(r.paid) }
+        val totalOutstanding = allRows.fold(BigDecimal.ZERO) { acc, r -> acc.add(r.outstanding) }
+        val totalAmount = allRows.fold(BigDecimal.ZERO) { acc, r -> acc.add(r.total) }
+
+        val totalPages = maxOf(1, (foundCount + PAGE_SIZE - 1) / PAGE_SIZE)
+        val currentPage = page.coerceIn(1, totalPages)
+        val pageRows = allRows.drop((currentPage - 1) * PAGE_SIZE).take(PAGE_SIZE)
+
+        BukuBesarResult(
+            rows = pageRows,
+            foundCount = foundCount,
+            totalMargin = totalMargin,
+            totalPaid = totalPaid,
+            totalOutstanding = totalOutstanding,
+            totalAmount = totalAmount,
+            currentPage = currentPage,
+            totalPages = totalPages
+        )
+    }
+
     private fun buildSalesSummary(invoices: List<ResultRow>, payments: List<ResultRow>): SalesSummary {
         var totalOmzet = BigDecimal.ZERO
         var totalGrossProfit = BigDecimal.ZERO
@@ -253,6 +374,8 @@ class ReportService {
         )
     }
 }
+
+// ─── Sales Report Models ───────────────────────────────────────────────────────
 
 data class SalesSummary(
     val totalOmzet: BigDecimal,
@@ -321,4 +444,46 @@ data class CustomerReceivableSnapshot(
     val customerName: String,
     val totalReceivable: BigDecimal,
     val invoiceCount: Int
+)
+
+// ─── Buku Besar Report Models ──────────────────────────────────────────────────
+
+enum class BukuBesarStatus { Closed, New, Outstanding, Unpaid, AllOutstanding }
+
+enum class AmountOperator { GTE, LTE }
+
+data class BukuBesarFilter(
+    val startDate: LocalDateTime? = null,
+    val endDate: LocalDateTime? = null,
+    val amountValue: BigDecimal? = null,
+    val amountOperator: AmountOperator = AmountOperator.GTE,
+    val statusAs: BukuBesarStatus? = null,
+    val customerQuery: String = "",
+    val paymentType: String = ""
+)
+
+data class BukuBesarRow(
+    val customerCode: String,
+    val customerName: String,
+    val fakturNr: String,
+    val fakturDate: LocalDateTime,
+    val agingStatus: String,
+    val description: String?,
+    val paidDate: LocalDateTime?,
+    val paid: BigDecimal,
+    val outstanding: BigDecimal,
+    val total: BigDecimal,
+    val paymentType: String?,
+    val margin: BigDecimal
+)
+
+data class BukuBesarResult(
+    val rows: List<BukuBesarRow>,
+    val foundCount: Int,
+    val totalMargin: BigDecimal,
+    val totalPaid: BigDecimal,
+    val totalOutstanding: BigDecimal,
+    val totalAmount: BigDecimal,
+    val currentPage: Int,
+    val totalPages: Int
 )

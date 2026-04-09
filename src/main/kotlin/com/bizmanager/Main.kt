@@ -96,7 +96,7 @@ fun App(
                     paymentService,
                     productRepository
                 )
-                Screen.ReportPage -> ReportPageScreen(reportService)
+                Screen.ReportPage -> ReportPageScreen(reportService, customerRepository)
                 Screen.SettingsPage -> SettingsScreen(appSettingRepository)
                 Screen.BackupRestore -> BackupRestoreScreen(appSettingRepository)
                 Screen.AboutPage -> AboutScreen()

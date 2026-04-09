@@ -16,7 +16,6 @@ import com.bizmanager.data.repository.InvoiceRepository
 import com.bizmanager.domain.model.Customer
 import com.bizmanager.domain.model.Invoice
 import com.bizmanager.domain.model.InvoiceStatus
-import com.bizmanager.domain.model.InvoiceStatus
 import com.bizmanager.presentation.ui.PaginationControl
 import com.bizmanager.presentation.ui.paginateList
 import com.bizmanager.presentation.ui.toCurrencyLabel

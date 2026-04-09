@@ -67,7 +67,7 @@ compose.desktop {
             packageVersion = "1.0.0"
             modules("java.sql")
             windows {
-                console = true
+                console = false
             }
             macOS {
                 bundleID = "com.bizmanager.app"
